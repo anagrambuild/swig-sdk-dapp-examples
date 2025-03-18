@@ -34,8 +34,24 @@ yarn build
 
 ### Develop
 
-To develop all apps and packages, run the following command:
+To develop all apps and packages simultaneously, run the following command:
 
 ```
 yarn dev
+```
+
+You can also develop individual apps using these commands:
+
+```bash
+# Run wallet standard dapp
+yarn dev:wallet-standard
+
+# Run legacy dapp
+yarn dev:legacy-dapp
+
+# Run swig native dapp
+yarn dev:swig-native
+
+# Run in-app wallet example
+yarn dev:in-app-wallet
 ```

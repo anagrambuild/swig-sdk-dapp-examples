@@ -7,6 +7,10 @@
     "packages/*"
   ],
   "scripts": {
+    "dev:wallet-standard": "turbo run dev --filter=@swig/wallet-standard-dapp",
+    "dev:legacy-dapp": "turbo run dev --filter=@swig/legacy-dapp-example",
+    "dev:swig-native": "turbo run dev --filter=@swig/swig-native-dapp",
+    "dev:in-app-wallet": "turbo run dev --filter=@swig/in-app-wallet-example",
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
