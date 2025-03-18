@@ -29,7 +29,7 @@ This turborepo has some additional tools already set up for you:
 To build all apps and packages, run the following command:
 
 ```
-npm run build
+yarn build
 ```
 
 ### Develop
@@ -37,5 +37,5 @@ npm run build
 To develop all apps and packages, run the following command:
 
 ```
-npm run dev
+yarn dev
 ```

@@ -15,11 +15,12 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "devDependencies": {
-    "turbo": "latest",
     "prettier": "^2.8.8",
+    "turbo": "latest",
     "typescript": "^5.0.4"
   },
   "engines": {
     "node": ">=16.0.0"
-  }
+  },
+  "packageManager": "yarn@4.6.0"
 }
