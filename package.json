@@ -19,6 +19,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "devDependencies": {
+    "@types/chrome": "^0.0.309",
     "prettier": "^2.8.8",
     "turbo": "latest",
     "typescript": "^5.0.4"
