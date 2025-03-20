@@ -1,5 +1,4 @@
-import Card from './Card';
-import { Select } from '@swig/ui';
+import { Select, Card } from '@swig/ui';
 
 interface AdminDashboardProps {
   selectedLendingPermission: string[];
