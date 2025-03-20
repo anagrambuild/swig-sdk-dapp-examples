@@ -1,5 +1,10 @@
 import { Select, Card } from '@swig/ui';
-import { permissionOptions, tokenOptions } from '../data';
+import {
+  permissionOptions,
+  lendingTokenOptions,
+  dcaTokenOptions,
+  tradingTokenOptions,
+} from '../data';
 import { AdminDashboardProps } from '../types/ui';
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -27,7 +32,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       <div className='text-lg font-medium text-gray-900'>
         Configure permissions for each protocol according to swig specs
       </div>
-      <div className='flex flex-row gap-4'>
+      <div className='flex flex-row gap-4 items-start'>
         <Card>
           <div>Lending protocol</div>
           <div>
@@ -55,6 +60,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               onChange={(e) => setLendingSolRequired(Number(e.target.value))}
             />
           </div>
+
           <div>
             <span className='text-sm text-gray-500'>
               Select possible tokens for lending protocol
@@ -63,7 +69,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               multiple
               value={lendingTokens}
               onChange={(value) => setLendingTokens(value as string[])}
-              options={tokenOptions}
+              options={lendingTokenOptions}
             />
           </div>
         </Card>
@@ -101,7 +107,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               multiple
               value={dcaTokens}
               onChange={(value) => setDcaTokens(value as string[])}
-              options={tokenOptions}
+              options={dcaTokenOptions}
             />
           </div>
         </Card>
@@ -141,7 +147,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               multiple
               value={tradingTokens}
               onChange={(value) => setTradingTokens(value as string[])}
-              options={tokenOptions}
+              options={tradingTokenOptions}
             />
           </div>
         </Card>

@@ -1,5 +1,10 @@
 import { Button, Card, Select } from '@swig/ui';
-import { permissionOptions, tokenOptions } from '../data';
+import {
+  permissionOptions,
+  lendingTokenOptions,
+  dcaTokenOptions,
+  tradingTokenOptions,
+} from '../data';
 import { displayLabels, formatOptions } from '../utils/formatOptions';
 import { UserDashboardProps } from '../types/ui';
 
@@ -41,11 +46,16 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
     selectedTradingPermission
   );
 
-  const lendingTokensOptions = formatOptions(tokenOptions, lendingTokens);
-  const dcaTokensOptions = formatOptions(tokenOptions, dcaTokens);
-  const tradingTokensOptions = formatOptions(tokenOptions, tradingTokens);
-  console.log('userLendingTokens', userLendingTokens);
-  console.log('userLendingTokenAmounts', userLendingTokenAmounts);
+  const lendingTokensOptions = formatOptions(
+    lendingTokenOptions,
+    lendingTokens
+  );
+  const dcaTokensOptions = formatOptions(dcaTokenOptions, dcaTokens);
+  const tradingTokensOptions = formatOptions(
+    tradingTokenOptions,
+    tradingTokens
+  );
+
   return (
     <div className='mt-6 flex flex-row gap-2'>
       <Card>
