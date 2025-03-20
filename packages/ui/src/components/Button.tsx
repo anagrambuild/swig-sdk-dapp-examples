@@ -15,20 +15,21 @@ export const Button: React.FC<ButtonProps> = ({
   disabled = false,
   className,
 }) => {
-  const baseStyles = 'px-4 py-2 rounded font-medium transition-colors';
-
-  const variantStyles = {
-    primary: 'bg-blue-600 text-white hover:bg-blue-700',
-    secondary: 'bg-gray-200 text-gray-800 hover:bg-gray-300',
-    danger: 'bg-red-600 text-white hover:bg-red-700',
-  };
-
-  const style = `${baseStyles} ${variantStyles[variant]} ${
-    disabled ? 'opacity-50 cursor-not-allowed' : ''
-  } ${className}`;
+  const variantStyles =
+    variant === 'primary'
+      ? 'bg-blue-600 text-white hover:bg-blue-700'
+      : variant === 'secondary'
+      ? 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+      : 'bg-red-600 text-white hover:bg-red-700';
 
   return (
-    <button className={style} onClick={onClick} disabled={disabled}>
+    <button
+      className={`px-4 py-2 rounded font-medium transition-colors ${variantStyles} ${
+        disabled ? 'opacity-50 cursor-not-allowed' : ''
+      } ${className}`}
+      onClick={onClick}
+      disabled={disabled}
+    >
       {children}
     </button>
   );
