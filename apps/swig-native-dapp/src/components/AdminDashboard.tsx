@@ -1,50 +1,6 @@
 import { Select, Card } from '@swig/ui';
-
-interface AdminDashboardProps {
-  selectedLendingPermission: string[];
-  setSelectedLendingPermission: (permission: string[]) => void;
-  selectedDcaPermission: string[];
-  setSelectedDcaPermission: (permission: string[]) => void;
-  selectedTradingPermission: string[];
-  setSelectedTradingPermission: (permission: string[]) => void;
-  lendingSolRequired: number;
-  setLendingSolRequired: (solRequired: number) => void;
-  dcaSolRequired: number;
-  setDcaSolRequired: (solRequired: number) => void;
-  tradingSolRequired: number;
-  setTradingSolRequired: (solRequired: number) => void;
-  lendingTokens: string[];
-  setLendingTokens: (tokens: string[]) => void;
-  dcaTokens: string[];
-  setDcaTokens: (tokens: string[]) => void;
-  tradingTokens: string[];
-  setTradingTokens: (tokens: string[]) => void;
-}
-
-const permissionOptions = [
-  { id: 0, value: 'view_balance', label: 'View Balance' },
-  {
-    id: 1,
-    value: 'view_transaction_history',
-    label: 'View Transaction History',
-  },
-  { id: 2, value: 'sign_transactions', label: 'Sign Transactions' },
-  { id: 3, value: 'create_sub_account', label: 'Create Sub-Account' },
-  {
-    id: 4,
-    value: 'set_up_automatic_subscriptions',
-    label: 'Set Up Automatic Subscriptions',
-  },
-];
-
-const tokenOptions = [
-  { id: 0, value: 'SOL', label: 'SOL' },
-  { id: 1, value: 'USDC', label: 'USDC' },
-  { id: 2, value: 'USDT', label: 'USDT' },
-  { id: 3, value: 'BONK', label: 'BONK' },
-  { id: 4, value: 'WIF', label: 'WIF' },
-  { id: 5, value: 'JUP', label: 'JUP' },
-];
+import { permissionOptions, tokenOptions } from '../data';
+import { AdminDashboardProps } from '../types/ui';
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({
   selectedLendingPermission,
@@ -69,7 +25,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   return (
     <div>
       <div className='text-lg font-medium text-gray-900'>
-        Configure permissions for each protocol
+        Configure permissions for each protocol according to swig specs
       </div>
       <div className='flex flex-row gap-4'>
         <Card>
