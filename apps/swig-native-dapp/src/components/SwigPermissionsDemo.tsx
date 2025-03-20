@@ -11,7 +11,8 @@ const SwigPermissionsDemo: React.FC<SwigPermissionsDemoProps> = () => {
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [isAdmin, setIsAdmin] = useState<boolean>(true);
+  // set by the admin
   const [selectedLendingPermission, setSelectedLendingPermission] = useState<
     string[]
   >([]);
@@ -21,20 +22,83 @@ const SwigPermissionsDemo: React.FC<SwigPermissionsDemoProps> = () => {
   const [selectedTradingPermission, setSelectedTradingPermission] = useState<
     string[]
   >([]);
+
   const [lendingSolRequired, setLendingSolRequired] = useState<number>(0);
   const [dcaSolRequired, setDcaSolRequired] = useState<number>(0);
   const [tradingSolRequired, setTradingSolRequired] = useState<number>(0);
+
   const [lendingTokens, setLendingTokens] = useState<string[]>([]);
   const [dcaTokens, setDcaTokens] = useState<string[]>([]);
   const [tradingTokens, setTradingTokens] = useState<string[]>([]);
+
+  // set by the user
+  const [userLendingTokens, setUserLendingTokens] = useState<string[]>([]);
+  const [userDcaTokens, setUserDcaTokens] = useState<string[]>([]);
+  const [userTradingTokens, setUserTradingTokens] = useState<string[]>([]);
+
+  const [userLendingTokenAmounts, setUserLendingTokenAmounts] = useState<
+    { token: string; amount: number }[]
+  >([]);
+  const [userDcaTokenAmounts, setUserDcaTokenAmounts] = useState<
+    { token: string; amount: number }[]
+  >([]);
+  const [userTradingTokenAmounts, setUserTradingTokenAmounts] = useState<
+    { token: string; amount: number }[]
+  >([]);
+
+  const handleLendingAmountChange = (token: string, value: string) => {
+    const numValue = Number(value) || 0;
+    setUserLendingTokenAmounts((prev) => {
+      const existing = prev.find((item) => item.token === token);
+      if (existing) {
+        // Update existing token amount
+        return prev.map((item) =>
+          item.token === token ? { ...item, amount: numValue } : item
+        );
+      } else {
+        // Add new token amount
+        return [...prev, { token, amount: numValue }];
+      }
+    });
+  };
+
+  const handleDcaAmountChange = (token: string, value: string) => {
+    const numValue = Number(value) || 0;
+    setUserDcaTokenAmounts((prev) => {
+      const existing = prev.find((item) => item.token === token);
+      if (existing) {
+        return prev.map((item) =>
+          item.token === token ? { ...item, amount: numValue } : item
+        );
+      } else {
+        return [...prev, { token, amount: numValue }];
+      }
+    });
+  };
+
+  const handleTradingAmountChange = (token: string, value: string) => {
+    const numValue = Number(value) || 0;
+    setUserTradingTokenAmounts((prev) => {
+      const existing = prev.find((item) => item.token === token);
+      if (existing) {
+        return prev.map((item) =>
+          item.token === token ? { ...item, amount: numValue } : item
+        );
+      } else {
+        return [...prev, { token, amount: numValue }];
+      }
+    });
+  };
+
   // This is the Chrome extension ID for the Swig wallet
   // Replace with your actual extension ID
   const swigExtensionId = 'khnahinkhjfaolcbjaamlopkknpcapgn';
+  const jupLogo = 'https://cryptologos.cc/logos/jupiter-ag-jup-logo.png?v=040';
 
-  const requestPermission = async (permissionType: string) => {
+  const requestPermission = async (permissions: string[]) => {
     setLoading(true);
     setError(null);
-    setStatus(`Requesting ${permissionType} permission...`);
+    setStatus(`Requesting permissions...`);
 
     try {
       // Check if chrome.runtime is available
@@ -45,12 +109,12 @@ const SwigPermissionsDemo: React.FC<SwigPermissionsDemoProps> = () => {
           {
             action: 'request_permissions',
             appName: 'Jupiter DEX',
-            appIcon: window.location.origin + '/favicon.ico',
-            permissions: [permissionType],
+            appIcon: jupLogo,
+            permissions: permissions,
             origin: window.location.origin,
             navigate: {
               screen: 'permissions-request',
-              params: { requestedPermission: permissionType },
+              params: { requestedPermissions: permissions },
             },
           },
           (response) => {
@@ -185,19 +249,19 @@ const SwigPermissionsDemo: React.FC<SwigPermissionsDemoProps> = () => {
       <div className='flex flex-row gap-4 w-1/2 rounded-md'>
         <div
           className={`w-1/2 bg-gray-100 p-4 rounded-md cursor-pointer ${
-            !isAdmin ? 'bg-green-500 text-white' : ''
-          }`}
-          onClick={() => setIsAdmin(false)}
-        >
-          User dashboard
-        </div>
-        <div
-          className={`w-1/2 bg-gray-100 p-4 rounded-md cursor-pointer ${
             isAdmin ? 'bg-green-500 text-white' : ''
           }`}
           onClick={() => setIsAdmin(true)}
         >
           Admin dashboard
+        </div>
+        <div
+          className={`w-1/2 bg-gray-100 p-4 rounded-md cursor-pointer ${
+            !isAdmin ? 'bg-green-500 text-white' : ''
+          }`}
+          onClick={() => setIsAdmin(false)}
+        >
+          User dashboard
         </div>
       </div>
 
@@ -238,6 +302,27 @@ const SwigPermissionsDemo: React.FC<SwigPermissionsDemoProps> = () => {
         <UserDashboard
           requestPermission={requestPermission}
           loading={loading}
+          selectedLendingPermission={selectedLendingPermission}
+          selectedDcaPermission={selectedDcaPermission}
+          selectedTradingPermission={selectedTradingPermission}
+          lendingSolRequired={lendingSolRequired}
+          dcaSolRequired={dcaSolRequired}
+          tradingSolRequired={tradingSolRequired}
+          lendingTokens={lendingTokens}
+          dcaTokens={dcaTokens}
+          tradingTokens={tradingTokens}
+          userLendingTokens={userLendingTokens}
+          setUserLendingTokens={setUserLendingTokens}
+          userDcaTokens={userDcaTokens}
+          setUserDcaTokens={setUserDcaTokens}
+          userTradingTokens={userTradingTokens}
+          setUserTradingTokens={setUserTradingTokens}
+          userLendingTokenAmounts={userLendingTokenAmounts}
+          handleLendingAmountChange={handleLendingAmountChange}
+          userDcaTokenAmounts={userDcaTokenAmounts}
+          handleDcaAmountChange={handleDcaAmountChange}
+          userTradingTokenAmounts={userTradingTokenAmounts}
+          handleTradingAmountChange={handleTradingAmountChange}
         />
       )}
     </div>

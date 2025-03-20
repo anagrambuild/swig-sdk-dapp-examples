@@ -1,4 +1,3 @@
-// types/swig.d.ts
 export interface SwigWallet {
   isSwigWallet: boolean;
   isConnected: () => Promise<boolean>;
