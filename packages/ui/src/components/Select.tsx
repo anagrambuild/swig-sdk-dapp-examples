@@ -67,9 +67,7 @@ export const Select: React.FC<SelectProps> = ({
   };
 
   return (
-    <div
-      className={`${style} max-h-[150px] overflow-y-auto flex flex-col gap-1 p-2`}
-    >
+    <div className={`${style} flex-1 overflow-y-auto flex flex-col gap-1 p-2`}>
       {options.map((option) => (
         <label
           key={option.value}
