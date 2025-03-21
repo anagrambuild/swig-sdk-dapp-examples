@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import AdminDashboard from './AdminDashboard';
+import UserDashboard from './UserDashboard';
 
 interface SwigPermissionsDemoProps {
   publicKey: string;
@@ -9,15 +11,94 @@ const SwigPermissionsDemo: React.FC<SwigPermissionsDemoProps> = () => {
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean>(true);
+  // set by the admin
+  const [selectedLendingPermission, setSelectedLendingPermission] = useState<
+    string[]
+  >([]);
+  const [selectedDcaPermission, setSelectedDcaPermission] = useState<string[]>(
+    []
+  );
+  const [selectedTradingPermission, setSelectedTradingPermission] = useState<
+    string[]
+  >([]);
+
+  const [lendingSolRequired, setLendingSolRequired] = useState<number>(0);
+  const [dcaSolRequired, setDcaSolRequired] = useState<number>(0);
+  const [tradingSolRequired, setTradingSolRequired] = useState<number>(0);
+
+  const [lendingTokens, setLendingTokens] = useState<string[]>([]);
+  const [dcaTokens, setDcaTokens] = useState<string[]>([]);
+  const [tradingTokens, setTradingTokens] = useState<string[]>([]);
+
+  // set by the user
+  const [userLendingTokens, setUserLendingTokens] = useState<string[]>([]);
+  const [userDcaTokens, setUserDcaTokens] = useState<string[]>([]);
+  const [userTradingTokens, setUserTradingTokens] = useState<string[]>([]);
+
+  const [userLendingTokenAmounts, setUserLendingTokenAmounts] = useState<
+    { token: string; amount: number }[]
+  >([]);
+  const [userDcaTokenAmounts, setUserDcaTokenAmounts] = useState<
+    { token: string; amount: number }[]
+  >([]);
+  const [userTradingTokenAmounts, setUserTradingTokenAmounts] = useState<
+    { token: string; amount: number }[]
+  >([]);
+
+  const handleLendingAmountChange = (token: string, value: string) => {
+    const numValue = Number(value) || 0;
+    setUserLendingTokenAmounts((prev) => {
+      const existing = prev.find((item) => item.token === token);
+      if (existing) {
+        // Update existing token amount
+        return prev.map((item) =>
+          item.token === token ? { ...item, amount: numValue } : item
+        );
+      } else {
+        // Add new token amount
+        return [...prev, { token, amount: numValue }];
+      }
+    });
+  };
+
+  const handleDcaAmountChange = (token: string, value: string) => {
+    const numValue = Number(value) || 0;
+    setUserDcaTokenAmounts((prev) => {
+      const existing = prev.find((item) => item.token === token);
+      if (existing) {
+        return prev.map((item) =>
+          item.token === token ? { ...item, amount: numValue } : item
+        );
+      } else {
+        return [...prev, { token, amount: numValue }];
+      }
+    });
+  };
+
+  const handleTradingAmountChange = (token: string, value: string) => {
+    const numValue = Number(value) || 0;
+    setUserTradingTokenAmounts((prev) => {
+      const existing = prev.find((item) => item.token === token);
+      if (existing) {
+        return prev.map((item) =>
+          item.token === token ? { ...item, amount: numValue } : item
+        );
+      } else {
+        return [...prev, { token, amount: numValue }];
+      }
+    });
+  };
 
   // This is the Chrome extension ID for the Swig wallet
   // Replace with your actual extension ID
   const swigExtensionId = 'khnahinkhjfaolcbjaamlopkknpcapgn';
+  const jupLogo = 'https://cryptologos.cc/logos/jupiter-ag-jup-logo.png?v=040';
 
-  const requestPermission = async (permissionType: string) => {
+  const requestPermission = async (permissions: string[]) => {
     setLoading(true);
     setError(null);
-    setStatus(`Requesting ${permissionType} permission...`);
+    setStatus(`Requesting permissions...`);
 
     try {
       // Check if chrome.runtime is available
@@ -28,12 +109,12 @@ const SwigPermissionsDemo: React.FC<SwigPermissionsDemoProps> = () => {
           {
             action: 'request_permissions',
             appName: 'Jupiter DEX',
-            appIcon: window.location.origin + '/favicon.ico',
-            permissions: [permissionType],
+            appIcon: jupLogo,
+            permissions: permissions,
             origin: window.location.origin,
             navigate: {
               screen: 'permissions-request',
-              params: { requestedPermission: permissionType },
+              params: { requestedPermissions: permissions },
             },
           },
           (response) => {
@@ -91,79 +172,98 @@ const SwigPermissionsDemo: React.FC<SwigPermissionsDemoProps> = () => {
     }
   };
 
-  const openSwigExtension = () => {
-    setLoading(true);
-    setError(null);
-    setStatus('Opening Swig extension...');
+  // const openSwigExtension = () => {
+  //   setLoading(true);
+  //   setError(null);
+  //   setStatus('Opening Swig extension...');
 
-    try {
-      // Check if chrome.runtime is available
-      if (window.chrome && window.chrome.runtime) {
-        // Try to open the extension using Chrome's API
-        window.chrome.runtime.sendMessage(
-          swigExtensionId,
-          { action: 'open_popup' },
-          (response) => {
-            setLoading(false);
+  //   try {
+  //     // Check if chrome.runtime is available
+  //     if (window.chrome && window.chrome.runtime) {
+  //       // Try to open the extension using Chrome's API
+  //       window.chrome.runtime.sendMessage(
+  //         swigExtensionId,
+  //         { action: 'open_popup' },
+  //         (response) => {
+  //           setLoading(false);
 
-            if (window.chrome?.runtime.lastError) {
-              console.error(
-                'Error opening extension:',
-                window.chrome.runtime.lastError
-              );
-              setError(
-                `Error opening extension: ${
-                  window.chrome.runtime.lastError.message || 'Unknown error'
-                }`
-              );
-              return;
-            }
+  //           if (window.chrome?.runtime.lastError) {
+  //             console.error(
+  //               'Error opening extension:',
+  //               window.chrome.runtime.lastError
+  //             );
+  //             setError(
+  //               `Error opening extension: ${
+  //                 window.chrome.runtime.lastError.message || 'Unknown error'
+  //               }`
+  //             );
+  //             return;
+  //           }
 
-            if (response && response.success) {
-              setStatus('Swig extension opened successfully');
-            } else {
-              setError(response?.error || 'Failed to open Swig extension');
-            }
-          }
-        );
-      } else {
-        throw new Error(
-          'Chrome extension API not available. Try using Chrome browser.'
-        );
-      }
-    } catch (error) {
-      setLoading(false);
-      setError(
-        `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
+  //           if (response && response.success) {
+  //             setStatus('Swig extension opened successfully');
+  //           } else {
+  //             setError(response?.error || 'Failed to open Swig extension');
+  //           }
+  //         }
+  //       );
+  //     } else {
+  //       throw new Error(
+  //         'Chrome extension API not available. Try using Chrome browser.'
+  //       );
+  //     }
+  //   } catch (error) {
+  //     setLoading(false);
+  //     setError(
+  //       `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+  //     );
 
-      // Fallback approach
-      try {
-        window.open(
-          `chrome-extension://${swigExtensionId}/index.html`,
-          '_blank'
-        );
-        setStatus('Attempted to open Swig extension in a new tab');
-      } catch (fallbackError) {
-        setError(
-          `Fallback also failed: ${
-            fallbackError instanceof Error
-              ? fallbackError.message
-              : 'Unknown error'
-          }`
-        );
-      }
-    }
-  };
+  //     // Fallback approach
+  //     try {
+  //       window.open(
+  //         `chrome-extension://${swigExtensionId}/index.html`,
+  //         '_blank'
+  //       );
+  //       setStatus('Attempted to open Swig extension in a new tab');
+  //     } catch (fallbackError) {
+  //       setError(
+  //         `Fallback also failed: ${
+  //           fallbackError instanceof Error
+  //             ? fallbackError.message
+  //             : 'Unknown error'
+  //         }`
+  //       );
+  //     }
+  //   }
+  // };
 
   return (
-    <div>
+    <div className='flex flex-col gap-4'>
       <h2 className='text-xl font-medium text-gray-900'>
         Swig Permissions Demo
       </h2>
       <p className='mt-2 text-sm text-gray-600'>
         Test opening the Swig wallet extension to request different permissions.
       </p>
+
+      <div className='flex flex-row gap-4 w-1/2 rounded-md'>
+        <div
+          className={`w-1/2 bg-gray-100 p-4 rounded-md cursor-pointer ${
+            isAdmin ? 'bg-green-500 text-white' : ''
+          }`}
+          onClick={() => setIsAdmin(true)}
+        >
+          Admin dashboard
+        </div>
+        <div
+          className={`w-1/2 bg-gray-100 p-4 rounded-md cursor-pointer ${
+            !isAdmin ? 'bg-green-500 text-white' : ''
+          }`}
+          onClick={() => setIsAdmin(false)}
+        >
+          User dashboard
+        </div>
+      </div>
 
       {error && (
         <div className='mt-4 p-3 bg-red-100 text-red-700 rounded-md'>
@@ -177,41 +277,54 @@ const SwigPermissionsDemo: React.FC<SwigPermissionsDemoProps> = () => {
         </div>
       )}
 
-      <div className='mt-6'>
-        <button
-          onClick={() => requestPermission('view_balance')}
-          disabled={loading}
-          className='py-2 px-4 mr-3 mb-3 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50'
-        >
-          Request View Balance Permission
-        </button>
-
-        <button
-          onClick={() => requestPermission('sign_transactions')}
-          disabled={loading}
-          className='py-2 px-4 mr-3 mb-3 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50'
-        >
-          Request Sign Transactions Permission
-        </button>
-
-        <button
-          onClick={() => requestPermission('create_sub_account')}
-          disabled={loading}
-          className='py-2 px-4 mr-3 mb-3 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50'
-        >
-          Request Create Sub-Account Permission
-        </button>
-      </div>
-
-      <div className='mt-6'>
-        <button
-          onClick={openSwigExtension}
-          disabled={loading}
-          className='py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700 disabled:opacity-50'
-        >
-          Just Open Swig Extension
-        </button>
-      </div>
+      {isAdmin ? (
+        <AdminDashboard
+          selectedLendingPermission={selectedLendingPermission}
+          setSelectedLendingPermission={setSelectedLendingPermission}
+          selectedDcaPermission={selectedDcaPermission}
+          setSelectedDcaPermission={setSelectedDcaPermission}
+          selectedTradingPermission={selectedTradingPermission}
+          setSelectedTradingPermission={setSelectedTradingPermission}
+          lendingSolRequired={lendingSolRequired}
+          setLendingSolRequired={setLendingSolRequired}
+          dcaSolRequired={dcaSolRequired}
+          setDcaSolRequired={setDcaSolRequired}
+          tradingSolRequired={tradingSolRequired}
+          setTradingSolRequired={setTradingSolRequired}
+          lendingTokens={lendingTokens}
+          setLendingTokens={setLendingTokens}
+          dcaTokens={dcaTokens}
+          setDcaTokens={setDcaTokens}
+          tradingTokens={tradingTokens}
+          setTradingTokens={setTradingTokens}
+        />
+      ) : (
+        <UserDashboard
+          requestPermission={requestPermission}
+          loading={loading}
+          selectedLendingPermission={selectedLendingPermission}
+          selectedDcaPermission={selectedDcaPermission}
+          selectedTradingPermission={selectedTradingPermission}
+          lendingSolRequired={lendingSolRequired}
+          dcaSolRequired={dcaSolRequired}
+          tradingSolRequired={tradingSolRequired}
+          lendingTokens={lendingTokens}
+          dcaTokens={dcaTokens}
+          tradingTokens={tradingTokens}
+          userLendingTokens={userLendingTokens}
+          setUserLendingTokens={setUserLendingTokens}
+          userDcaTokens={userDcaTokens}
+          setUserDcaTokens={setUserDcaTokens}
+          userTradingTokens={userTradingTokens}
+          setUserTradingTokens={setUserTradingTokens}
+          userLendingTokenAmounts={userLendingTokenAmounts}
+          handleLendingAmountChange={handleLendingAmountChange}
+          userDcaTokenAmounts={userDcaTokenAmounts}
+          handleDcaAmountChange={handleDcaAmountChange}
+          userTradingTokenAmounts={userTradingTokenAmounts}
+          handleTradingAmountChange={handleTradingAmountChange}
+        />
+      )}
     </div>
   );
 };
