@@ -7,6 +7,8 @@ import {
 } from '../data';
 import { displayLabels, formatOptions } from '../utils/formatOptions';
 import { UserDashboardProps } from '../types/ui';
+import { FaChevronDown, FaChevronUp } from 'react-icons/fa6';
+import { useState } from 'react';
 
 const UserDashboard: React.FC<UserDashboardProps> = ({
   requestPermission,
@@ -33,6 +35,10 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
   userTradingTokenAmounts,
   handleTradingAmountChange,
 }) => {
+  const [showLendingPermissions, setShowLendingPermissions] = useState(false);
+  const [showDcaPermissions, setShowDcaPermissions] = useState(false);
+  const [showTradingPermissions, setShowTradingPermissions] = useState(false);
+
   const lendingPermissions = displayLabels(
     permissionOptions,
     selectedLendingPermission
@@ -57,20 +63,10 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
   );
 
   return (
-    <div className='mt-6 flex flex-row gap-2'>
+    <div className='mt-6 flex flex-row gap-2 items-start'>
       <Card>
-        <div className='flex flex-col gap-2'>
-          <div>Lending protocol</div>
-          <span className='text-sm text-gray-500'>
-            We will need the following permissions from your swig wallet to help
-            you interact with the lending protocol:
-          </span>
-        </div>
-        <div className='text-sm text-gray-800'>
-          {lendingPermissions.map((permission) => (
-            <div key={permission}>{permission}</div>
-          ))}
-        </div>
+        <div>Lending protocol</div>
+        <div>Description of the protocol with a cool graphic</div>
         {lendingSolRequired === 0 ? null : (
           <div className='text-sm text-gray-500'>
             <span>SOL Required for transactions fees: </span>
@@ -93,6 +89,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
         <div className='flex flex-col gap-1'>
           {userLendingTokens.map((token) => (
             <div key={token}>
+              <span className='text-sm text-gray-500'>{token}</span>
               <input
                 type='number'
                 className='w-full border border-gray-300 rounded-md p-2'
@@ -108,6 +105,34 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
             </div>
           ))}
         </div>
+
+        {lendingPermissions.length > 0 ? (
+          <span
+            onClick={() => setShowLendingPermissions(!showLendingPermissions)}
+            className='text-sm text-gray-500 flex flex-row gap-2 items-center'
+          >
+            <span>permissions</span>
+            {!showLendingPermissions ? (
+              <FaChevronDown size={12} />
+            ) : (
+              <FaChevronUp size={12} />
+            )}
+          </span>
+        ) : null}
+
+        {showLendingPermissions && (
+          <div className='flex flex-col gap-2'>
+            <span className='text-sm text-gray-500'>
+              We will need the following permissions from your swig wallet to
+              help you interact with the lending protocol:
+            </span>
+            <div className='text-sm text-gray-800'>
+              {lendingPermissions.map((permission) => (
+                <div key={permission}>{permission}</div>
+              ))}
+            </div>
+          </div>
+        )}
         <Button
           variant='primary'
           onClick={() => requestPermission(selectedLendingPermission)}
@@ -119,24 +144,15 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
 
       {/* DCA */}
       <Card>
-        <div className='flex flex-col gap-2'>
-          <div>DCA protocol</div>
-          <span className='text-sm text-gray-500'>
-            We will need the following permissions from your swig wallet to help
-            you interact with the DCA protocol:
-          </span>
-        </div>
-        <div className='text-sm text-gray-800'>
-          {dcaPermissions.map((permission) => (
-            <div key={permission}>{permission}</div>
-          ))}
-        </div>
+        <div>DCA protocol</div>
+        <div>Description of the protocol with a cool graphic</div>
         {dcaSolRequired === 0 ? null : (
           <div className='text-sm text-gray-500'>
             <span>SOL Required for transactions fees: </span>
             <span className='text-sm text-gray-800'>{dcaSolRequired}</span>
           </div>
         )}
+
         {dcaTokensOptions.length > 0 ? (
           <div className='flex flex-col gap-1'>
             <span className='text-sm text-gray-500'>
@@ -153,6 +169,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
         <div className='flex flex-col gap-1'>
           {userDcaTokens.map((token) => (
             <div key={token}>
+              <span className='text-sm text-gray-500'>{token}</span>
               <input
                 type='number'
                 className='w-full border border-gray-300 rounded-md p-2'
@@ -166,6 +183,33 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
             </div>
           ))}
         </div>
+        {dcaPermissions.length > 0 ? (
+          <span
+            onClick={() => setShowDcaPermissions(!showDcaPermissions)}
+            className='text-sm text-gray-500 flex flex-row gap-2 items-center'
+          >
+            <span>permissions</span>
+            {!showDcaPermissions ? (
+              <FaChevronDown size={12} />
+            ) : (
+              <FaChevronUp size={12} />
+            )}
+          </span>
+        ) : null}
+
+        {showDcaPermissions && (
+          <div className='flex flex-col gap-2'>
+            <span className='text-sm text-gray-500'>
+              We will need the following permissions from your swig wallet to
+              help you interact with the DCA protocol:
+            </span>
+            <div className='text-sm text-gray-800'>
+              {dcaPermissions.map((permission) => (
+                <div key={permission}>{permission}</div>
+              ))}
+            </div>
+          </div>
+        )}
         <Button
           variant='primary'
           onClick={() => requestPermission(selectedDcaPermission)}
@@ -177,24 +221,15 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
 
       {/* Trading */}
       <Card>
-        <div className='flex flex-col gap-2'>
-          <div>Trading protocol</div>
-          <span className='text-sm text-gray-500'>
-            We will need the following permissions from your swig wallet to help
-            you interact with the trading protocol:
-          </span>
-        </div>
-        <div className='text-sm text-gray-800'>
-          {tradingPermissions.map((permission) => (
-            <div key={permission}>{permission}</div>
-          ))}
-        </div>
+        <div>Trading protocol</div>
+        <div>Description of the protocol with a cool graphic</div>
         {tradingSolRequired === 0 ? null : (
           <div className='text-sm text-gray-500'>
             <span>SOL Required for transactions fees: </span>
             <span className='text-sm text-gray-800'>{tradingSolRequired}</span>
           </div>
         )}
+
         {tradingTokensOptions.length > 0 ? (
           <div className='flex flex-col gap-1'>
             <span className='text-sm text-gray-500'>
@@ -211,6 +246,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
         <div className='flex flex-col gap-1'>
           {userTradingTokens.map((token) => (
             <div key={token}>
+              <span className='text-sm text-gray-500'>{token}</span>
               <input
                 type='number'
                 className='w-full border border-gray-300 rounded-md p-2'
@@ -226,6 +262,33 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
             </div>
           ))}
         </div>
+        {tradingPermissions.length > 0 ? (
+          <span
+            onClick={() => setShowTradingPermissions(!showTradingPermissions)}
+            className='text-sm text-gray-500 flex flex-row gap-2 items-center'
+          >
+            <span>permissions</span>
+            {!showTradingPermissions ? (
+              <FaChevronDown size={12} />
+            ) : (
+              <FaChevronUp size={12} />
+            )}
+          </span>
+        ) : null}
+
+        {showTradingPermissions && (
+          <div className='flex flex-col gap-2'>
+            <span className='text-sm text-gray-500'>
+              We will need the following permissions from your swig wallet to
+              help you interact with the trading protocol:
+            </span>
+            <div className='text-sm text-gray-800'>
+              {tradingPermissions.map((permission) => (
+                <div key={permission}>{permission}</div>
+              ))}
+            </div>
+          </div>
+        )}
         <Button
           variant='primary'
           onClick={() => requestPermission(selectedTradingPermission)}

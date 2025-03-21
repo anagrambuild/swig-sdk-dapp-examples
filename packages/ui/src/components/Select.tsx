@@ -58,16 +58,42 @@ export const Select: React.FC<SelectProps> = ({
   const handleToggleOption = (optionValue: string) => {
     const currentValues = Array.isArray(value) ? value : [];
     if (currentValues.includes(optionValue)) {
-      // Remove the option if already selected
       onChange(currentValues.filter((val) => val !== optionValue));
     } else {
-      // Add the option if not selected
       onChange([...currentValues, optionValue]);
+    }
+  };
+
+  const handleSelectAll = () => {
+    const currentValues = Array.isArray(value) ? value : [];
+    if (currentValues.length === options.length) {
+      // If all options are selected, deselect all
+      onChange([]);
+    } else {
+      // Otherwise, select all options
+      onChange(options.map((option) => option.value));
     }
   };
 
   return (
     <div className={`${style} flex-1 overflow-y-auto flex flex-col gap-1 p-2`}>
+      {multiple && (
+        <>
+          <label
+            className='flex items-center gap-2 p-1 hover:bg-blue-100 rounded cursor-pointer border-b border-gray-200'
+            style={{ gap: '4px' }}
+          >
+            <input
+              type='checkbox'
+              checked={Array.isArray(value) && value.length === options.length}
+              onChange={handleSelectAll}
+              disabled={disabled}
+              className='h-4 w-4 text-blue-600 mr-[4px]'
+            />
+            <span className='font-medium'>Select All</span>
+          </label>
+        </>
+      )}
       {options.map((option) => (
         <label
           key={option.value}
