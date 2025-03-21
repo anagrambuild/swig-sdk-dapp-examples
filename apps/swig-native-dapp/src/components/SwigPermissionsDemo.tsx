@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import AdminDashboard from './AdminDashboard';
 import UserDashboard from './UserDashboard';
+import jupImg from '../assets/jup.png';
 
 interface SwigPermissionsDemoProps {
   publicKey: string;
@@ -245,7 +246,15 @@ const SwigPermissionsDemo: React.FC<SwigPermissionsDemoProps> = () => {
       <p className='mt-2 text-sm text-gray-600'>
         Test opening the Swig wallet extension to request different permissions.
       </p>
-
+      <div className='flex flex-row gap-4 items-center'>
+        <img
+          src={jupImg}
+          alt='Jupiter DEX'
+          className='w-1/2 rounded-md'
+          style={{ width: '100px', height: '100px' }}
+        />
+        <h1 className='text-2xl font-medium text-gray-900'>Jupiter DEX</h1>
+      </div>
       <div className='flex flex-row gap-4 w-1/2 rounded-md'>
         <div
           className={`w-1/2 bg-gray-100 p-4 rounded-md cursor-pointer ${
