@@ -20,7 +20,11 @@ export interface AdminDashboardProps {
 }
 
 export interface UserDashboardProps {
-  requestPermission: (permissions: string[]) => void;
+  requestPermission: (
+    permissions: string[],
+    solRequired: number,
+    tokenAmounts: { token: string; amount: number }[]
+  ) => void;
   loading: boolean;
   selectedLendingPermission: string[];
   selectedDcaPermission: string[];

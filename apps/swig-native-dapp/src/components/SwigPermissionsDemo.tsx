@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import AdminDashboard from './AdminDashboard';
 import UserDashboard from './UserDashboard';
-import jupImg from '../assets/jup.png';
 
 interface SwigPermissionsDemoProps {
   publicKey: string;
@@ -96,7 +95,11 @@ const SwigPermissionsDemo: React.FC<SwigPermissionsDemoProps> = () => {
   const swigExtensionId = 'khnahinkhjfaolcbjaamlopkknpcapgn';
   const jupLogo = 'https://cryptologos.cc/logos/jupiter-ag-jup-logo.png?v=040';
 
-  const requestPermission = async (permissions: string[]) => {
+  const requestPermission = async (
+    permissions: string[],
+    solRequired: number,
+    tokenAmounts: { token: string; amount: number }[]
+  ) => {
     setLoading(true);
     setError(null);
     setStatus(`Requesting permissions...`);
@@ -113,9 +116,15 @@ const SwigPermissionsDemo: React.FC<SwigPermissionsDemoProps> = () => {
             appIcon: jupLogo,
             permissions: permissions,
             origin: window.location.origin,
+            solRequired: solRequired,
+            tokenAmounts: tokenAmounts,
             navigate: {
               screen: 'permissions-request',
-              params: { requestedPermissions: permissions },
+              params: {
+                requestedPermissions: permissions,
+                solRequired,
+                tokenAmounts,
+              },
             },
           },
           (response) => {
@@ -248,7 +257,7 @@ const SwigPermissionsDemo: React.FC<SwigPermissionsDemoProps> = () => {
       </p>
       <div className='flex flex-row gap-4 items-center'>
         <img
-          src={jupImg}
+          src={jupLogo}
           alt='Jupiter DEX'
           className='w-1/2 rounded-md'
           style={{ width: '100px', height: '100px' }}

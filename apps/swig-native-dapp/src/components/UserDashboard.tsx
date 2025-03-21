@@ -135,7 +135,13 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
         )}
         <Button
           variant='primary'
-          onClick={() => requestPermission(selectedLendingPermission)}
+          onClick={() =>
+            requestPermission(
+              selectedLendingPermission,
+              lendingSolRequired,
+              userLendingTokenAmounts
+            )
+          }
           disabled={loading}
         >
           Connect to Swig Wallet
@@ -212,7 +218,13 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
         )}
         <Button
           variant='primary'
-          onClick={() => requestPermission(selectedDcaPermission)}
+          onClick={() =>
+            requestPermission(
+              selectedDcaPermission,
+              dcaSolRequired,
+              userDcaTokenAmounts
+            )
+          }
           disabled={loading}
         >
           Connect to Swig Wallet
@@ -291,7 +303,13 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
         )}
         <Button
           variant='primary'
-          onClick={() => requestPermission(selectedTradingPermission)}
+          onClick={() =>
+            requestPermission(
+              selectedTradingPermission,
+              tradingSolRequired,
+              userTradingTokenAmounts
+            )
+          }
           disabled={loading}
         >
           Connect to Swig Wallet
