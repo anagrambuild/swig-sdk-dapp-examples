@@ -3259,6 +3259,20 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@swig-wallet/classic@npm:^0.2.0":
+  version: 0.2.0
+  resolution: "@swig-wallet/classic@npm:0.2.0"
+  checksum: 10c0/a9ee9aeb6995cd0cb02024302992bc0ce635a077375cca74c53c3e8556ef06dedc69fd1bedd1e58ae6ab7f95cd6ddfc9a1a78d9685874de4d332d53fc78ecb67
+  languageName: node
+  linkType: hard
+
+"@swig-wallet/coder@npm:^0.2.0":
+  version: 0.2.0
+  resolution: "@swig-wallet/coder@npm:0.2.0"
+  checksum: 10c0/916066c36b26613e59e61c20688459cf5c46d46af39773bba2bfb8c6a0476764c9cd5232e8df79b77af07846506cbbb5636938ad5d4ecdb46db14fd146f7b6f5
+  languageName: node
+  linkType: hard
+
 "@swig/eslint-config-custom@npm:*, @swig/eslint-config-custom@workspace:packages/eslint-config-custom":
   version: 0.0.0-use.local
   resolution: "@swig/eslint-config-custom@workspace:packages/eslint-config-custom"
@@ -3275,6 +3289,8 @@ __metadata:
   resolution: "@swig/in-app-wallet-example@workspace:apps/in-app-wallet-example"
   dependencies:
     "@solana/web3.js": "npm:^1.78.0"
+    "@swig-wallet/classic": "npm:^0.2.0"
+    "@swig-wallet/coder": "npm:^0.2.0"
     "@swig/eslint-config-custom": "npm:*"
     "@swig/tsconfig": "npm:*"
     "@swig/ui": "npm:*"
@@ -10206,6 +10222,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "swig-ts-sdk-dapp-examples@workspace:."
   dependencies:
+    "@swig-wallet/classic": "npm:^0.2.0"
     "@types/chrome": "npm:^0.0.309"
     prettier: "npm:^2.8.8"
     react-icons: "npm:^5.5.0"
