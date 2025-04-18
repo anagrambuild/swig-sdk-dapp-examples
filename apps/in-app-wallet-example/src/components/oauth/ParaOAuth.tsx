@@ -1,16 +1,14 @@
 import { useEffect, useState } from 'react';
+import { OAuthButtons } from './OAuthButtons';
 import { WalletDisplay } from './WalletDisplay';
 import { para } from '../../client/para';
-import { ParaModal } from '@getpara/react-sdk';
-import { Button } from '@swig/ui';
-import '@getpara/react-sdk/styles.css';
+import { OAuthMethod } from '@getpara/web-sdk';
 
 const ParaOAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [wallet, setWallet] = useState<string>('');
   const [error, setError] = useState<string>('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleCheckIfAuthenticated = async () => {
     setIsLoading(true);
@@ -43,6 +41,88 @@ const ParaOAuth = () => {
     }
   };
 
+  const handleAuthentication = async (method: OAuthMethod) => {
+    setIsLoading(true);
+    try {
+      if (method === OAuthMethod.FARCASTER) {
+        await handleFarcasterAuth();
+      } else {
+        await handleRegularOAuth(method);
+      }
+    } catch (error) {
+      console.error('Authentication error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleFarcasterAuth = async () => {
+    const connectUri = await para.getFarcasterConnectURL();
+    window.open(connectUri, 'farcasterConnectPopup', 'popup=true');
+
+    const { userExists, username } = await para.waitForFarcasterStatus();
+
+    const authUrl = userExists
+      ? await para.initiateUserLogin({
+          useShortUrl: false,
+          farcasterUsername: username,
+        })
+      : await para.getSetUpBiometricsURL({
+          authType: 'farcaster',
+          isForNewDevice: false,
+        });
+
+    const popupWindow = window.open(
+      authUrl,
+      userExists ? 'loginPopup' : 'signUpPopup',
+      'popup=true'
+    );
+
+    if (!popupWindow) throw new Error('Failed to open popup window');
+
+    await (userExists
+      ? para.waitForLoginAndSetup({ popupWindow })
+      : para.waitForPasskeyAndCreateWallet());
+
+    // Check authentication status after successful login
+    await handleCheckIfAuthenticated();
+  };
+
+  const handleRegularOAuth = async (method: OAuthMethod) => {
+    const oAuthURL = await para.getOAuthURL({ method });
+    window.open(oAuthURL, 'oAuthPopup', 'popup=true');
+
+    const { email, userExists } = await para.waitForOAuth();
+
+    if (!email) throw new Error('Email not found');
+
+    const authUrl = userExists
+      ? await para.initiateUserLogin({ email, useShortUrl: false })
+      : await para.getSetUpBiometricsURL({
+          authType: 'email',
+          isForNewDevice: false,
+        });
+
+    const popupWindow = window.open(
+      authUrl,
+      userExists ? 'loginPopup' : 'signUpPopup',
+      'popup=true'
+    );
+
+    if (!popupWindow) throw new Error('Failed to open popup window');
+
+    const result = await (userExists
+      ? para.waitForLoginAndSetup({ popupWindow })
+      : para.waitForPasskeyAndCreateWallet());
+
+    if ('needsWallet' in result && result.needsWallet) {
+      await para.createWallet();
+    }
+
+    // Check authentication status after successful login
+    await handleCheckIfAuthenticated();
+  };
+
   return (
     <main className='flex flex-col items-center justify-center min-h-screen gap-6 p-8'>
       <h1 className='text-2xl font-bold'>
@@ -56,25 +136,7 @@ const ParaOAuth = () => {
       {isConnected ? (
         <WalletDisplay walletAddress={wallet} onLogout={handleLogout} />
       ) : (
-        <>
-          <Button onClick={() => setIsModalOpen(true)}>
-            Connect with Para
-          </Button>
-          <ParaModal
-            para={para}
-            isOpen={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
-            logo=''
-            theme={{}}
-            oAuthMethods={['GOOGLE', 'TWITTER', 'TELEGRAM']}
-            disableEmailLogin
-            disablePhoneLogin
-            authLayout={['AUTH:FULL', 'EXTERNAL:FULL']}
-            externalWallets={[]}
-            recoverySecretStepEnabled
-            onRampTestMode={true}
-          />
-        </>
+        <OAuthButtons onSelect={handleAuthentication} isLoading={isLoading} />
       )}
       {error && <p className='text-red-500 text-sm text-center'>{error}</p>}
     </main>
