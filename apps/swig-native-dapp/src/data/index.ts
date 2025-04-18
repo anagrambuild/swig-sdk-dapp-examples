@@ -23,7 +23,7 @@ export const lendingTokenOptions = [
   { id: 5, value: 'JUP', label: 'JUP' },
 ];
 
-export const dcaTokenOptions = [
+export const subscriptionTokenOptions = [
   { id: 0, value: 'SOL', label: 'SOL' },
   { id: 1, value: 'USDC', label: 'USDC' },
   { id: 2, value: 'USDT', label: 'USDT' },
