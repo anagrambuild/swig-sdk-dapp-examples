@@ -1,47 +1,47 @@
 import React, { useState } from 'react';
+import { Tabs, Tab } from '@swig/ui';
 import AdminDashboard from './AdminDashboard';
 import UserDashboard from './UserDashboard';
 
-interface SwigPermissionsDemoProps {
-  publicKey: string;
-  role: string | null;
-}
-
-const SwigPermissionsDemo: React.FC<SwigPermissionsDemoProps> = () => {
+const SwigPermissionsDemo: React.FC = () => {
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean>(true);
+  const [view, setView] = useState<'lending' | 'subscription' | 'trading'>(
+    'lending'
+  );
   // set by the admin
   const [selectedLendingPermission, setSelectedLendingPermission] = useState<
     string[]
   >([]);
-  const [selectedDcaPermission, setSelectedDcaPermission] = useState<string[]>(
-    []
-  );
+  const [selectedSubscriptionPermission, setSelectedSubscriptionPermission] =
+    useState<string[]>([]);
   const [selectedTradingPermission, setSelectedTradingPermission] = useState<
     string[]
   >([]);
 
   const [lendingSolRequired, setLendingSolRequired] = useState<number>(0);
-  const [dcaSolRequired, setDcaSolRequired] = useState<number>(0);
+  const [subscriptionSolRequired, setSubscriptionSolRequired] =
+    useState<number>(0);
   const [tradingSolRequired, setTradingSolRequired] = useState<number>(0);
 
   const [lendingTokens, setLendingTokens] = useState<string[]>([]);
-  const [dcaTokens, setDcaTokens] = useState<string[]>([]);
+  const [subscriptionTokens, setSubscriptionTokens] = useState<string[]>([]);
   const [tradingTokens, setTradingTokens] = useState<string[]>([]);
 
   // set by the user
   const [userLendingTokens, setUserLendingTokens] = useState<string[]>([]);
-  const [userDcaTokens, setUserDcaTokens] = useState<string[]>([]);
+  const [userSubscriptionTokens, setUserSubscriptionTokens] = useState<
+    string[]
+  >([]);
   const [userTradingTokens, setUserTradingTokens] = useState<string[]>([]);
 
   const [userLendingTokenAmounts, setUserLendingTokenAmounts] = useState<
     { token: string; amount: number }[]
   >([]);
-  const [userDcaTokenAmounts, setUserDcaTokenAmounts] = useState<
-    { token: string; amount: number }[]
-  >([]);
+  const [userSubscriptionTokenAmounts, setUserSubscriptionTokenAmounts] =
+    useState<{ token: string; amount: number }[]>([]);
   const [userTradingTokenAmounts, setUserTradingTokenAmounts] = useState<
     { token: string; amount: number }[]
   >([]);
@@ -62,9 +62,9 @@ const SwigPermissionsDemo: React.FC<SwigPermissionsDemoProps> = () => {
     });
   };
 
-  const handleDcaAmountChange = (token: string, value: string) => {
+  const handleSubscriptionAmountChange = (token: string, value: string) => {
     const numValue = Number(value) || 0;
-    setUserDcaTokenAmounts((prev) => {
+    setUserSubscriptionTokenAmounts((prev) => {
       const existing = prev.find((item) => item.token === token);
       if (existing) {
         return prev.map((item) =>
@@ -91,9 +91,9 @@ const SwigPermissionsDemo: React.FC<SwigPermissionsDemoProps> = () => {
   };
 
   // This is the Chrome extension ID for the Swig wallet
-  // Replace with your actual extension ID
   const swigExtensionId = 'khnahinkhjfaolcbjaamlopkknpcapgn';
-  const jupLogo = 'https://cryptologos.cc/logos/jupiter-ag-jup-logo.png?v=040';
+  const jupLogo =
+    'https://jup.ag/_next/image?url=%2Fsvg%2Fjupiter-logo.png&w=48&q=75';
 
   const requestPermission = async (
     permissions: string[],
@@ -182,71 +182,6 @@ const SwigPermissionsDemo: React.FC<SwigPermissionsDemoProps> = () => {
     }
   };
 
-  // const openSwigExtension = () => {
-  //   setLoading(true);
-  //   setError(null);
-  //   setStatus('Opening Swig extension...');
-
-  //   try {
-  //     // Check if chrome.runtime is available
-  //     if (window.chrome && window.chrome.runtime) {
-  //       // Try to open the extension using Chrome's API
-  //       window.chrome.runtime.sendMessage(
-  //         swigExtensionId,
-  //         { action: 'open_popup' },
-  //         (response) => {
-  //           setLoading(false);
-
-  //           if (window.chrome?.runtime.lastError) {
-  //             console.error(
-  //               'Error opening extension:',
-  //               window.chrome.runtime.lastError
-  //             );
-  //             setError(
-  //               `Error opening extension: ${
-  //                 window.chrome.runtime.lastError.message || 'Unknown error'
-  //               }`
-  //             );
-  //             return;
-  //           }
-
-  //           if (response && response.success) {
-  //             setStatus('Swig extension opened successfully');
-  //           } else {
-  //             setError(response?.error || 'Failed to open Swig extension');
-  //           }
-  //         }
-  //       );
-  //     } else {
-  //       throw new Error(
-  //         'Chrome extension API not available. Try using Chrome browser.'
-  //       );
-  //     }
-  //   } catch (error) {
-  //     setLoading(false);
-  //     setError(
-  //       `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
-  //     );
-
-  //     // Fallback approach
-  //     try {
-  //       window.open(
-  //         `chrome-extension://${swigExtensionId}/index.html`,
-  //         '_blank'
-  //       );
-  //       setStatus('Attempted to open Swig extension in a new tab');
-  //     } catch (fallbackError) {
-  //       setError(
-  //         `Fallback also failed: ${
-  //           fallbackError instanceof Error
-  //             ? fallbackError.message
-  //             : 'Unknown error'
-  //         }`
-  //       );
-  //     }
-  //   }
-  // };
-
   return (
     <div className='flex flex-col gap-4'>
       <h2 className='text-xl font-medium text-gray-900'>
@@ -255,6 +190,20 @@ const SwigPermissionsDemo: React.FC<SwigPermissionsDemoProps> = () => {
       <p className='mt-2 text-sm text-gray-600'>
         Test opening the Swig wallet extension to request different permissions.
       </p>
+      <Tabs>
+        <Tab isSelected={view === 'lending'} onClick={() => setView('lending')}>
+          Lending
+        </Tab>
+        <Tab
+          isSelected={view === 'subscription'}
+          onClick={() => setView('subscription')}
+        >
+          Subscriptions
+        </Tab>
+        <Tab isSelected={view === 'trading'} onClick={() => setView('trading')}>
+          Trading
+        </Tab>
+      </Tabs>
       <div className='flex flex-row gap-4 items-center'>
         <img
           src={jupLogo}
@@ -299,48 +248,50 @@ const SwigPermissionsDemo: React.FC<SwigPermissionsDemoProps> = () => {
         <AdminDashboard
           selectedLendingPermission={selectedLendingPermission}
           setSelectedLendingPermission={setSelectedLendingPermission}
-          selectedDcaPermission={selectedDcaPermission}
-          setSelectedDcaPermission={setSelectedDcaPermission}
+          selectedSubscriptionPermission={selectedSubscriptionPermission}
+          setSelectedSubscriptionPermission={setSelectedSubscriptionPermission}
           selectedTradingPermission={selectedTradingPermission}
           setSelectedTradingPermission={setSelectedTradingPermission}
           lendingSolRequired={lendingSolRequired}
           setLendingSolRequired={setLendingSolRequired}
-          dcaSolRequired={dcaSolRequired}
-          setDcaSolRequired={setDcaSolRequired}
+          subscriptionSolRequired={subscriptionSolRequired}
+          setSubscriptionSolRequired={setSubscriptionSolRequired}
           tradingSolRequired={tradingSolRequired}
           setTradingSolRequired={setTradingSolRequired}
           lendingTokens={lendingTokens}
           setLendingTokens={setLendingTokens}
-          dcaTokens={dcaTokens}
-          setDcaTokens={setDcaTokens}
+          subscriptionTokens={subscriptionTokens}
+          setSubscriptionTokens={setSubscriptionTokens}
           tradingTokens={tradingTokens}
           setTradingTokens={setTradingTokens}
+          view={view}
         />
       ) : (
         <UserDashboard
           requestPermission={requestPermission}
           loading={loading}
           selectedLendingPermission={selectedLendingPermission}
-          selectedDcaPermission={selectedDcaPermission}
+          selectedSubscriptionPermission={selectedSubscriptionPermission}
           selectedTradingPermission={selectedTradingPermission}
           lendingSolRequired={lendingSolRequired}
-          dcaSolRequired={dcaSolRequired}
+          subscriptionSolRequired={subscriptionSolRequired}
           tradingSolRequired={tradingSolRequired}
           lendingTokens={lendingTokens}
-          dcaTokens={dcaTokens}
+          subscriptionTokens={subscriptionTokens}
           tradingTokens={tradingTokens}
           userLendingTokens={userLendingTokens}
           setUserLendingTokens={setUserLendingTokens}
-          userDcaTokens={userDcaTokens}
-          setUserDcaTokens={setUserDcaTokens}
+          userSubscriptionTokens={userSubscriptionTokens}
+          setUserSubscriptionTokens={setUserSubscriptionTokens}
           userTradingTokens={userTradingTokens}
           setUserTradingTokens={setUserTradingTokens}
           userLendingTokenAmounts={userLendingTokenAmounts}
           handleLendingAmountChange={handleLendingAmountChange}
-          userDcaTokenAmounts={userDcaTokenAmounts}
-          handleDcaAmountChange={handleDcaAmountChange}
+          userSubscriptionTokenAmounts={userSubscriptionTokenAmounts}
+          handleSubscriptionAmountChange={handleSubscriptionAmountChange}
           userTradingTokenAmounts={userTradingTokenAmounts}
           handleTradingAmountChange={handleTradingAmountChange}
+          view={view}
         />
       )}
     </div>
