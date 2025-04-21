@@ -129,7 +129,6 @@ const ParaOAuth = () => {
         <Home walletAddress={wallet} onLogout={handleLogout} />
       ) : (
         <>
-          <OAuthButtons onSelect={handleAuthentication} isLoading={isLoading} />
           <h1 className='text-2xl font-bold'>
             Custom OAuth Auth + Para Example + Swig Wallet
           </h1>
@@ -138,6 +137,7 @@ const ParaOAuth = () => {
             using Para's SDK combined with Swig wallet sdk.
           </p>
           <div className='w-full h-[2px] bg-gray-400' />
+          <OAuthButtons onSelect={handleAuthentication} isLoading={isLoading} />
         </>
       )}
       {error && <p className='text-red-500 text-sm text-center'>{error}</p>}
