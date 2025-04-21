@@ -124,19 +124,21 @@ const ParaOAuth = () => {
   };
 
   return (
-    <main className='flex flex-col items-center justify-center min-h-screen gap-6 p-8'>
-      <h1 className='text-2xl font-bold'>
-        Custom OAuth Auth + Para Example + Swig Wallet
-      </h1>
-      <p className='max-w-md text-center'>
-        This example demonstrates a minimal custom OAuth authentication flow
-        using Para's SDK combined with Swig wallet sdk.
-      </p>
-
+    <main className='flex flex-col items-center min-h-screen gap-2 p-4'>
       {isConnected ? (
         <Home walletAddress={wallet} onLogout={handleLogout} />
       ) : (
-        <OAuthButtons onSelect={handleAuthentication} isLoading={isLoading} />
+        <>
+          <OAuthButtons onSelect={handleAuthentication} isLoading={isLoading} />
+          <h1 className='text-2xl font-bold'>
+            Custom OAuth Auth + Para Example + Swig Wallet
+          </h1>
+          <p className='max-w-md text-center'>
+            This example demonstrates a minimal custom OAuth authentication flow
+            using Para's SDK combined with Swig wallet sdk.
+          </p>
+          <div className='w-full h-[2px] bg-gray-400' />
+        </>
       )}
       {error && <p className='text-red-500 text-sm text-center'>{error}</p>}
     </main>

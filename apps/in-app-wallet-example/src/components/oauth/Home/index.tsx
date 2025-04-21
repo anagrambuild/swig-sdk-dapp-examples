@@ -1,4 +1,4 @@
-import { Button } from '@swig/ui';
+import { Button, Tab, Tabs } from '@swig/ui';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { createSwigAccount } from '../../../utils/createSwigAccount';
 import { useState } from 'react';
@@ -37,43 +37,56 @@ export const Home = ({ walletAddress, onLogout }: HomeProps) => {
     return swig.roles;
   };
 
-  if (view === 'swig') {
-    return <SwigDashboard />;
-  }
-
   return (
-    <div className='text-center flex flex-col gap-2'>
-      <h2 className='text-xl font-bold'>You are logged in!</h2>
-      {walletAddress ? (
-        <div className='flex flex-col gap-2'>
-          <p>
-            Your first wallet address is: <strong>{walletAddress}</strong>
-          </p>
-          {swigAddress && (
-            <p>
-              Your Swig wallet address is: <strong>{swigAddress}</strong>
-            </p>
-          )}
-          <div className='flex flex-col gap-2 justify-center w-[50%] mx-auto'>
-            <Button
-              onClick={handleSetupSwigWallet}
-              disabled={isSettingUp || !!swigAddress}
-            >
-              {isSettingUp ? 'Setting up...' : 'Set up Swig wallet'}
-            </Button>
-            {swigAddress && (
-              <Button variant='secondary' onClick={getSwigRoles}>
-                Get Swig roles
-              </Button>
+    <div className='text-center flex flex-col gap-2 flex-grow w-full'>
+      <Tabs>
+        <Tab isSelected={view === 'home'} onClick={() => setView('home')}>
+          Home
+        </Tab>
+        <Tab isSelected={view === 'swig'} onClick={() => setView('swig')}>
+          Swig Dashboard
+        </Tab>
+      </Tabs>
+      {view === 'home' && (
+        <div className='flex flex-col gap-2 justify-between flex-grow'>
+          <div className='flex flex-col gap-4 justify-center'>
+            <h2 className='text-xl font-bold'>You are logged in!</h2>
+            {walletAddress ? (
+              <div className='flex flex-col gap-2'>
+                <p>
+                  Your first wallet address is: <strong>{walletAddress}</strong>
+                </p>
+                {swigAddress && (
+                  <p>
+                    Your Swig wallet address is: <strong>{swigAddress}</strong>
+                  </p>
+                )}
+                <div className='flex flex-col gap-2 justify-center w-[50%] mx-auto'>
+                  <Button
+                    onClick={handleSetupSwigWallet}
+                    disabled={isSettingUp || !!swigAddress}
+                  >
+                    {isSettingUp ? 'Setting up...' : 'Set up Swig wallet'}
+                  </Button>
+                  {swigAddress && (
+                    <Button variant='secondary' onClick={getSwigRoles}>
+                      Get Swig roles
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p>No wallet found.</p>
             )}
+          </div>
+          <div className='flex flex-col gap-2 justify-center w-[50%] mx-auto'>
             <Button variant='secondary' onClick={onLogout}>
               Logout
             </Button>
           </div>
         </div>
-      ) : (
-        <p>No wallet found.</p>
       )}
+      {view === 'swig' && <SwigDashboard />}
     </div>
   );
 };
