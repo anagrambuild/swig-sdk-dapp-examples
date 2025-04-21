@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { OAuthButtons } from './OAuthButtons';
-import { WalletDisplay } from './WalletDisplay';
+import { Home } from './Home';
 import { para } from '../../client/para';
 import { OAuthMethod } from '@getpara/web-sdk';
 
@@ -134,7 +134,7 @@ const ParaOAuth = () => {
       </p>
 
       {isConnected ? (
-        <WalletDisplay walletAddress={wallet} onLogout={handleLogout} />
+        <Home walletAddress={wallet} onLogout={handleLogout} />
       ) : (
         <OAuthButtons onSelect={handleAuthentication} isLoading={isLoading} />
       )}
