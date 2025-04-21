@@ -1,6 +1,6 @@
 import { Button, Tab, Tabs } from '@swig/ui';
 import { Connection, PublicKey } from '@solana/web3.js';
-import { createSwigAccount } from '../../../utils/createSwigAccount';
+import { createSwigAccount } from '../../../utils/swig';
 import { useState } from 'react';
 import { fetchSwig } from '@swig-wallet/classic';
 import SwigDashboard from './SwigDashboard';
