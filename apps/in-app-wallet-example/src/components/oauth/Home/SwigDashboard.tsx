@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@swig/ui';
-import { LAMPORTS_PER_SOL } from '@solana/web3.js';
+import { LAMPORTS_PER_SOL, Connection, PublicKey } from '@solana/web3.js';
 import { useSwigContext } from '../../../context/SwigContext';
 
 interface SwigDashboardProps {
@@ -24,6 +24,53 @@ const SwigDashboard: React.FC<SwigDashboardProps> = () => {
 
   const [solAmount, setSolAmount] = useState<string>('');
   const [roleName, setRoleName] = useState<string>('');
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+
+  // Add a function to calculate total spending limits
+  const calculateTotalSpendingLimits = () => {
+    return roles.reduce((total, role) => {
+      if (role?.canSpendSol?.()) {
+        let left = BigInt(0);
+        let right = BigInt(100 * LAMPORTS_PER_SOL);
+        let maxLamports = BigInt(0);
+
+        while (left <= right) {
+          const mid = (left + right) / BigInt(2);
+          if (role.canSpendSol(mid)) {
+            maxLamports = mid;
+            left = mid + BigInt(1);
+          } else {
+            right = mid - BigInt(1);
+          }
+        }
+
+        return total + Number(maxLamports) / LAMPORTS_PER_SOL;
+      }
+      return total;
+    }, 0);
+  };
+
+  useEffect(() => {
+    const fetchBalance = async () => {
+      if (swigAddress) {
+        try {
+          const connection = new Connection(
+            'http://localhost:8899',
+            'confirmed'
+          );
+          const balanceInLamports = await connection.getBalance(
+            new PublicKey(swigAddress)
+          );
+          const balanceInSol = balanceInLamports / LAMPORTS_PER_SOL;
+          setWalletBalance(balanceInSol);
+        } catch (error) {
+          console.error('Error fetching balance:', error);
+        }
+      }
+    };
+
+    fetchBalance();
+  }, [swigAddress, isAddingRole]); // Refresh balance after adding roles
 
   const handleAddRole = async () => {
     if (!solAmount || !roleName) return;
@@ -97,21 +144,23 @@ const SwigDashboard: React.FC<SwigDashboardProps> = () => {
         </p>
       </div>
 
-      <div className='mb-6'>
-        <h2 className='text-xl font-medium mb-4'>Roles</h2>
-        <Button variant='secondary' onClick={getRoles} disabled={isLoading}>
-          {isLoading ? 'Loading...' : 'Get Swig roles'}
-        </Button>
-        {error && <p className='text-red-500 mt-2'>{error}</p>}
-        {roles.length > 0 && (
-          <div className='mt-4 flex gap-2 flex-wrap'>
+      <div className='mb-6 w-full max-w-2xl'>
+        <div className='p-4 border rounded bg-gray-50 mb-4'>
+          <h4 className='font-medium mb-2'>Swig Wallet Overview</h4>
+          {walletBalance !== null && (
+            <p className='text-lg font-medium text-blue-600'>
+              Total Balance: {walletBalance.toFixed(4)} SOL
+            </p>
+          )}
+          <p className='text-sm text-gray-600 mt-1'>
+            Total Spending Limits: {calculateTotalSpendingLimits().toFixed(4)}{' '}
+            SOL
+          </p>
+          <div className='mt-3'>
+            <p className='text-sm font-medium mb-1'>Role Spending Limits:</p>
             {roles.map((role, index) => {
-              const isRootRole = index === 0;
-              const hasAllPermissions =
-                isRootRole && role?.canSpendSol?.() === true;
-
-              let maxSolAmount = 0;
-              if (!hasAllPermissions && role?.canSpendSol) {
+              let limit = 0;
+              if (role?.canSpendSol?.()) {
                 let left = BigInt(0);
                 let right = BigInt(100 * LAMPORTS_PER_SOL);
                 let maxLamports = BigInt(0);
@@ -126,79 +175,75 @@ const SwigDashboard: React.FC<SwigDashboardProps> = () => {
                   }
                 }
 
-                maxSolAmount = Number(maxLamports) / LAMPORTS_PER_SOL;
+                limit = Number(maxLamports) / LAMPORTS_PER_SOL;
               }
-
               return (
                 <div
                   key={index}
-                  className='p-4 border rounded shadow-md min-w-[200px]'
+                  className='flex justify-between items-center text-sm'
                 >
-                  <h3 className='font-medium'>{role.name}</h3>
-                  <div className='space-y-1'>
-                    <p>
-                      Can manage authority:{' '}
-                      {role?.canManageAuthority?.() === true ? 'Yes' : 'No'}
-                    </p>
-                    <p>
-                      Can spend SOL:{' '}
-                      {role?.canSpendSol?.() === true ? 'Yes' : 'No'}
-                    </p>
-                    {role?.canSpendSol?.() === true && (
-                      <div>
-                        <p>
-                          Maximum SOL amount:{' '}
-                          {hasAllPermissions ? 'Unlimited' : maxSolAmount}
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                  <span>{role.name || `Role ${index + 1}`}:</span>
+                  <span
+                    className={
+                      role?.canSpendSol?.() ? 'text-blue-600' : 'text-gray-500'
+                    }
+                  >
+                    {role?.canSpendSol?.()
+                      ? `${limit.toFixed(4)} SOL`
+                      : 'No spending limit'}
+                  </span>
                 </div>
               );
             })}
           </div>
-        )}
-      </div>
+        </div>
 
-      <div>
-        <h2 className='text-xl font-medium mb-4'>Add New Role</h2>
-        <div className='flex flex-col gap-4 max-w-md'>
-          <div className='flex flex-col gap-2'>
-            <label htmlFor='roleName' className='text-sm font-medium'>
-              Role Name
-            </label>
-            <input
-              id='roleName'
-              type='text'
-              value={roleName}
-              onChange={(e) => setRoleName(e.target.value)}
-              placeholder='Enter role name'
-              className='px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-            />
+        <h2 className='text-xl font-medium mb-4'>Roles</h2>
+        <Button variant='secondary' onClick={getRoles} disabled={isLoading}>
+          {isLoading ? 'Loading...' : 'Get Swig roles'}
+        </Button>
+        {error && <p className='text-red-500 mt-2'>{error}</p>}
+
+        <div className='mt-8 w-full flex flex-col items-center'>
+          <h2 className='text-xl font-medium mb-4 w-full'>Add New Role</h2>
+          <div className='flex flex-col gap-4 w-1/2'>
+            <div className='flex flex-col gap-2'>
+              <label htmlFor='roleName' className='text-sm font-medium'>
+                Role Name
+              </label>
+              <input
+                id='roleName'
+                type='text'
+                value={roleName}
+                onChange={(e) => setRoleName(e.target.value)}
+                placeholder='Enter role name'
+                className='px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              />
+            </div>
+            <div className='flex flex-col gap-2'>
+              <label htmlFor='solAmount' className='text-sm font-medium'>
+                Maximum SOL Amount to Spend
+              </label>
+              <input
+                id='solAmount'
+                type='number'
+                value={solAmount}
+                onChange={(e) => setSolAmount(e.target.value)}
+                placeholder='Enter amount in SOL'
+                className='px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                min='0'
+                step='0.1'
+              />
+            </div>
+            <Button
+              variant='secondary'
+              onClick={handleAddRole}
+              disabled={isAddingRole || !solAmount || !roleName}
+            >
+              {isAddingRole ? 'Adding Role...' : 'Add New Role'}
+            </Button>
+            {error && <p className='text-red-500'>{error}</p>}
           </div>
-          <div className='flex flex-col gap-2'>
-            <label htmlFor='solAmount' className='text-sm font-medium'>
-              Maximum SOL Amount to Spend
-            </label>
-            <input
-              id='solAmount'
-              type='number'
-              value={solAmount}
-              onChange={(e) => setSolAmount(e.target.value)}
-              placeholder='Enter amount in SOL'
-              className='px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-              min='0'
-              step='0.1'
-            />
-          </div>
-          <Button
-            variant='secondary'
-            onClick={handleAddRole}
-            disabled={isAddingRole || !solAmount || !roleName}
-          >
-            {isAddingRole ? 'Adding Role...' : 'Add New Role'}
-          </Button>
-          {error && <p className='text-red-500'>{error}</p>}
         </div>
       </div>
     </div>

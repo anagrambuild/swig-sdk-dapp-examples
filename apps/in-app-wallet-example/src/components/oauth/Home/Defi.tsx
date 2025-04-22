@@ -1,7 +1,15 @@
 import { Button, Select } from '@swig/ui';
 import { useSwigContext } from '../../../context/SwigContext';
 import { useState, useEffect } from 'react';
-import { Connection, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
+import {
+  Connection,
+  LAMPORTS_PER_SOL,
+  PublicKey,
+  SystemProgram,
+  Keypair,
+} from '@solana/web3.js';
+import { signTransaction } from '../../../utils/swig/transactions';
+import { Ed25519Authority } from '@swig-wallet/classic';
 
 interface DefiProps {
   walletAddress?: string;
@@ -15,7 +23,11 @@ const Defi: React.FC<DefiProps> = ({ walletAddress, onLogout }) => {
   const [selectedRole, setSelectedRole] = useState<string>('');
   const [solAmount, setSolAmount] = useState<string>('');
   const [isTransferring, setIsTransferring] = useState(false);
-  const [balance, setBalance] = useState<number | null>(null);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [roleLimit, setRoleLimit] = useState<number | null>(null);
+  const [clientError, setClientError] = useState<string | null>(null);
+  const [sdkError, setSdkError] = useState<string | null>(null);
+  const [txSignature, setTxSignature] = useState<string | null>(null);
 
   const roleOptions = roles.map((role, index) => ({
     value: index.toString(),
@@ -23,7 +35,7 @@ const Defi: React.FC<DefiProps> = ({ walletAddress, onLogout }) => {
   }));
 
   useEffect(() => {
-    const fetchBalance = async () => {
+    const fetchBalanceAndLimit = async () => {
       if (swigAddress && selectedRole) {
         try {
           const connection = new Connection(
@@ -34,12 +46,11 @@ const Defi: React.FC<DefiProps> = ({ walletAddress, onLogout }) => {
             new PublicKey(swigAddress)
           );
           const balanceInSol = balanceInLamports / LAMPORTS_PER_SOL;
-          setBalance(balanceInSol);
-          console.log('Swig wallet balance:', balanceInSol, 'SOL');
+          setWalletBalance(balanceInSol);
 
           // Get the selected role's SOL limit
           const role = roles[parseInt(selectedRole)];
-          if (role?.canSpendSol) {
+          if (role?.canSpendSol?.()) {
             let left = BigInt(0);
             let right = BigInt(100 * LAMPORTS_PER_SOL);
             let maxLamports = BigInt(0);
@@ -55,44 +66,118 @@ const Defi: React.FC<DefiProps> = ({ walletAddress, onLogout }) => {
             }
 
             const maxSolAmount = Number(maxLamports) / LAMPORTS_PER_SOL;
-            console.log('Selected role max SOL limit:', maxSolAmount, 'SOL');
+            setRoleLimit(maxSolAmount);
+          } else {
+            setRoleLimit(null);
           }
         } catch (error) {
           console.error('Error fetching balance:', error);
         }
       } else {
-        setBalance(null);
+        setWalletBalance(null);
+        setRoleLimit(null);
       }
     };
 
-    fetchBalance();
+    fetchBalanceAndLimit();
   }, [swigAddress, selectedRole, roles, isTransferring]);
 
   const handleTransfer = async () => {
-    if (!selectedRole || !solAmount || !swigAddress) return;
+    // Clear all previous errors and transaction results
+    setClientError(null);
+    setSdkError(null);
+    setTxSignature(null);
+
+    if (!selectedRole || !solAmount || !swigAddress) {
+      setClientError('Please select a role and enter an amount');
+      return; // Keep this return as it's a required field check
+    }
+
+    const role = roles[parseInt(selectedRole)];
+    const amountInLamports = Number(solAmount) * LAMPORTS_PER_SOL;
+
+    // Client-side validations (set errors but don't return)
+    if (!role?.canSpendSol?.()) {
+      setClientError('Selected role does not have permission to spend SOL');
+    }
+
+    if (roleLimit !== null && Number(solAmount) > roleLimit) {
+      setClientError(
+        `Amount exceeds role's spending limit of ${roleLimit} SOL`
+      );
+    }
+
+    if (walletBalance !== null && Number(solAmount) > walletBalance) {
+      setClientError(`Amount exceeds wallet balance of ${walletBalance} SOL`);
+    }
+
     setIsTransferring(true);
+
     try {
       const connection = new Connection('http://localhost:8899', 'confirmed');
-      const role = roles[parseInt(selectedRole)];
 
-      if (!role.canSpendSol()) {
-        throw new Error('Selected role cannot spend SOL');
+      // Get the root keypair from localStorage
+      const rootKeypairSecret = localStorage.getItem('rootKeypair');
+      if (!rootKeypairSecret) {
+        setClientError('Root keypair not found');
+        return; // Keep this return as it's a critical requirement
       }
-
-      // TODO: Implement the actual transfer using Swig SDK
-      console.log(
-        `Transferring ${solAmount} SOL to ${RECIPIENT_ADDRESS} using role ${selectedRole}`
+      const rootKeypair = Keypair.fromSecretKey(
+        new Uint8Array(JSON.parse(rootKeypairSecret))
       );
-      console.log('Current Swig wallet balance:', balance, 'SOL');
 
-      // Add a delay to simulate transaction time
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Create the transfer instruction
+      const transferIx = SystemProgram.transfer({
+        fromPubkey: new PublicKey(swigAddress),
+        toPubkey: new PublicKey(RECIPIENT_ADDRESS),
+        lamports: amountInLamports,
+      });
+
+      // Create authority from the root keypair
+      const authority = new Ed25519Authority(rootKeypair.publicKey);
+
+      // Let the SDK handle the validation and signing
+      const signature = await signTransaction(
+        connection,
+        new PublicKey(swigAddress),
+        authority,
+        rootKeypair,
+        [transferIx]
+      );
+
+      setTxSignature(signature);
+
+      // Wait for confirmation
+      const confirmation = await connection.confirmTransaction(
+        signature,
+        'confirmed'
+      );
+
+      if (confirmation.value.err) {
+        setSdkError(
+          'Transaction failed: ' + JSON.stringify(confirmation.value.err)
+        );
+      }
     } catch (error) {
       console.error('Transfer failed:', error);
-      alert('Transfer failed: ' + (error as Error).message);
+      setSdkError((error as Error).message);
     } finally {
       setIsTransferring(false);
     }
+  };
+
+  const getExplorerUrl = (signature: string) => {
+    const baseUrl = 'https://explorer.solana.com';
+    const encodedLocalhost = encodeURIComponent('http://localhost:8899');
+    return `${baseUrl}/tx/${signature}?cluster=custom&customUrl=${encodedLocalhost}`;
+  };
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSolAmount(e.target.value);
+    // Clear errors and transaction signature when amount changes
+    setClientError(null);
+    setSdkError(null);
+    setTxSignature(null);
   };
 
   return (
@@ -105,6 +190,11 @@ const Defi: React.FC<DefiProps> = ({ walletAddress, onLogout }) => {
               Your first wallet address is:{' '}
               <span className='font-mono'>{walletAddress}</span>
             </p>
+            {walletBalance !== null && (
+              <p className='text-lg font-medium text-blue-600 mb-4'>
+                Total Balance: {walletBalance.toFixed(4)} SOL
+              </p>
+            )}
           </div>
         ) : (
           <p>No wallet found.</p>
@@ -136,9 +226,9 @@ const Defi: React.FC<DefiProps> = ({ walletAddress, onLogout }) => {
                     ? 'Yes'
                     : 'No'}
                 </p>
-                {balance !== null && (
+                {roleLimit !== null && (
                   <p className='mt-2 text-blue-600'>
-                    Available Balance: {balance.toFixed(4)} SOL
+                    Spending Limit: {roleLimit.toFixed(4)} SOL
                   </p>
                 )}
               </div>
@@ -154,7 +244,7 @@ const Defi: React.FC<DefiProps> = ({ walletAddress, onLogout }) => {
                 <input
                   type='number'
                   value={solAmount}
-                  onChange={(e) => setSolAmount(e.target.value)}
+                  onChange={handleAmountChange}
                   placeholder='Amount in SOL'
                   className='flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                   min='0'
@@ -164,28 +254,78 @@ const Defi: React.FC<DefiProps> = ({ walletAddress, onLogout }) => {
                 <Button
                   variant='primary'
                   onClick={handleTransfer}
-                  disabled={
-                    !selectedRole ||
-                    !solAmount ||
-                    isTransferring ||
-                    !roles[parseInt(selectedRole)]?.canSpendSol?.() ||
-                    (balance !== null && Number(solAmount) > balance)
-                  }
+                  disabled={!selectedRole || !solAmount || isTransferring}
                 >
                   {isTransferring ? 'Sending...' : 'Send SOL'}
                 </Button>
               </div>
-              {selectedRole &&
-                !roles[parseInt(selectedRole)]?.canSpendSol?.() && (
-                  <p className='text-sm text-red-500 mt-2'>
-                    Selected role does not have permission to spend SOL
-                  </p>
+
+              {/* Warnings and Errors Section */}
+              <div className='mt-4 flex flex-col gap-3'>
+                {/* Warnings */}
+                {roleLimit !== null && Number(solAmount) > roleLimit && (
+                  <div className='p-3 bg-orange-50 border border-orange-200 rounded-md'>
+                    <p className='text-sm text-orange-600'>
+                      Warning: Amount exceeds role's spending limit
+                    </p>
+                  </div>
                 )}
-              {balance !== null && Number(solAmount) > balance && (
-                <p className='text-sm text-red-500 mt-2'>
-                  Insufficient balance for this transfer
-                </p>
-              )}
+                {walletBalance !== null &&
+                  Number(solAmount) > walletBalance && (
+                    <div className='p-3 bg-orange-50 border border-orange-200 rounded-md'>
+                      <p className='text-sm text-orange-600'>
+                        Warning: Amount exceeds wallet balance
+                      </p>
+                    </div>
+                  )}
+
+                {/* Client Error */}
+                {clientError && (
+                  <div className='p-3 bg-red-50 border border-red-200 rounded-md'>
+                    <p className='text-sm font-medium text-red-800'>
+                      Client Validation Error:
+                    </p>
+                    <p className='text-sm text-red-600'>{clientError}</p>
+                  </div>
+                )}
+
+                {/* SDK Error with Transaction Link */}
+                {sdkError && (
+                  <div className='p-3 bg-red-50 border border-red-200 rounded-md'>
+                    <p className='text-sm font-medium text-red-800'>
+                      Transaction Error:
+                    </p>
+                    <p className='text-sm text-red-600'>{sdkError}</p>
+                    {txSignature && (
+                      <a
+                        href={getExplorerUrl(txSignature)}
+                        target='_blank'
+                        rel='noopener noreferrer'
+                        className='text-sm text-blue-600 hover:text-blue-800 underline block mt-2'
+                      >
+                        View failed transaction on Solana Explorer
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {/* Success with Transaction Link */}
+                {txSignature && !sdkError && (
+                  <div className='p-3 bg-green-50 border border-green-200 rounded-md'>
+                    <p className='text-sm font-medium text-green-800'>
+                      Transaction successful!
+                    </p>
+                    <a
+                      href={getExplorerUrl(txSignature)}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      className='text-sm text-blue-600 hover:text-blue-800 underline block mt-2'
+                    >
+                      View successful transaction on Solana Explorer
+                    </a>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
