@@ -243,28 +243,36 @@ const SwigDashboard: React.FC<SwigDashboardProps> = ({
         {roles.length > 0 && (
           <div className='mt-4 flex gap-2 flex-wrap'>
             {roles.map((role, index) => {
-              // Binary search to find the exact SOL limit
-              let left = BigInt(0);
-              let right = BigInt(5 * LAMPORTS_PER_SOL); // Start with 5 SOL as max
-              let maxLamports = BigInt(0);
+              // For the first role (root role), check if it has all permissions
+              const isRootRole = index === 0;
+              const hasAllPermissions = isRootRole && role.canSpendSol();
 
-              while (left <= right) {
-                const mid = (left + right) / BigInt(2);
-                if (role.canSpendSol(mid)) {
-                  maxLamports = mid;
-                  left = mid + BigInt(1);
-                } else {
-                  right = mid - BigInt(1);
+              // Binary search to find the exact SOL limit (only for non-root roles or root roles with limits)
+              let maxSolAmount = 0;
+              if (!hasAllPermissions) {
+                let left = BigInt(0);
+                let right = BigInt(100 * LAMPORTS_PER_SOL); // Start with 5 SOL as max
+                let maxLamports = BigInt(0);
+
+                while (left <= right) {
+                  const mid = (left + right) / BigInt(2);
+                  if (role.canSpendSol(mid)) {
+                    maxLamports = mid;
+                    left = mid + BigInt(1);
+                  } else {
+                    right = mid - BigInt(1);
+                  }
                 }
+
+                maxSolAmount = Number(maxLamports) / LAMPORTS_PER_SOL;
               }
 
-              const maxSolAmount = Number(maxLamports) / LAMPORTS_PER_SOL;
               const roleId = role.id.toString();
 
               return (
                 <div
                   key={index}
-                  className='p-4 border rounded shadow-md max-w-[200px]'
+                  className='p-4 border rounded shadow-md min-w-[200px]'
                 >
                   <h3 className='font-medium'>Role {roleId}</h3>
                   <div className='space-y-1'>
@@ -275,7 +283,10 @@ const SwigDashboard: React.FC<SwigDashboardProps> = ({
                     <p>Can spend SOL: {role.canSpendSol() ? 'Yes' : 'No'}</p>
                     {role.canSpendSol() && (
                       <div>
-                        <p>Maximum SOL amount: {maxSolAmount}</p>
+                        <p>
+                          Maximum SOL amount:{' '}
+                          {hasAllPermissions ? 'Unlimited' : maxSolAmount}
+                        </p>
                       </div>
                     )}
                   </div>
