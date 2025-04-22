@@ -1,229 +1,35 @@
 import React, { useState } from 'react';
 import { Button } from '@swig/ui';
-import {
-  Connection,
-  PublicKey,
-  LAMPORTS_PER_SOL,
-  Transaction,
-  Keypair,
-} from '@solana/web3.js';
-import {
-  fetchSwig,
-  Role,
-  Actions,
-  Ed25519Authority,
-  addAuthorityInstruction,
-} from '@swig-wallet/classic';
-import { createSwigAccount } from '../../../utils/swig';
-
-interface RoleWithName extends Role {
-  name: string;
-}
+import { LAMPORTS_PER_SOL } from '@solana/web3.js';
+import { useSwigContext } from '../../../context/SwigContext';
 
 interface SwigDashboardProps {
   walletAddress?: string;
 }
 
-const SwigDashboard: React.FC<SwigDashboardProps> = ({
-  walletAddress,
-}: {
-  walletAddress?: string;
-}) => {
-  const [roles, setRoles] = useState<RoleWithName[]>([]);
-  const [isSettingUp, setIsSettingUp] = useState(false);
-  const [swigAddress, setSwigAddress] = useState<string | null>(null);
-  const [permissionType, setPermissionType] = useState<'locked' | 'permissive'>(
-    'locked'
-  );
+const SwigDashboard: React.FC<SwigDashboardProps> = () => {
+  const {
+    roles,
+    swigAddress,
+    isSettingUp,
+    isLoading,
+    isAddingRole,
+    error,
+    permissionType,
+    setPermissionType,
+    setupSwigWallet,
+    getRoles,
+    addRole,
+  } = useSwigContext();
 
-  const [isLoading, setIsLoading] = useState(false);
   const [solAmount, setSolAmount] = useState<string>('');
   const [roleName, setRoleName] = useState<string>('');
-  const [isAddingRole, setIsAddingRole] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const wallet = {
-    publicKey: new PublicKey(walletAddress!),
-    signTransaction: async (tx: Transaction) => {
-      return tx;
-    },
-  };
-
-  const getSwigRoles = async () => {
-    if (!swigAddress) return [];
-    try {
-      const connection = new Connection('http://localhost:8899', 'confirmed');
-      const swig = await fetchSwig(connection, new PublicKey(swigAddress));
-      const fetchedRoles = swig.roles || [];
-
-      if (fetchedRoles[0]) {
-        const firstRole = fetchedRoles[0];
-        console.log('First role capabilities:', {
-          canManageAuthority: firstRole.canManageAuthority?.(),
-          canSpendSol: firstRole.canSpendSol?.(),
-          id: firstRole.id?.toString(),
-        });
-      }
-
-      // If we have more roles in swig than in our state, add them with default names
-      if (fetchedRoles.length > roles.length) {
-        // Create new roles while preserving the original role object
-        const newRoles = fetchedRoles.map((role, index) => {
-          // Create a new object that maintains the role's prototype chain
-          const roleWithName = Object.create(Object.getPrototypeOf(role));
-          // Copy all properties from the original role
-          Object.assign(roleWithName, role);
-          // Add the name property
-          roleWithName.name = index === 0 ? 'Root Role' : `Role ${index}`;
-          return roleWithName;
-        }) as RoleWithName[];
-
-        setRoles(newRoles);
-        return newRoles;
-      }
-
-      return roles;
-    } catch (error) {
-      console.error('Error fetching roles:', error);
-      return [];
-    }
-  };
-
-  const handleSetupSwigWallet = async () => {
-    try {
-      setIsSettingUp(true);
-      const connection = new Connection('http://localhost:8899', 'confirmed');
-      const { swigAddress, rootKeypairSecret } = await createSwigAccount(
-        connection,
-        permissionType
-      );
-      setSwigAddress(swigAddress.toBase58());
-      // Store the root keypair secret in localStorage
-      localStorage.setItem('rootKeypair', JSON.stringify(rootKeypairSecret));
-    } catch (error) {
-      console.error('Failed to set up Swig wallet:', error);
-    } finally {
-      setIsSettingUp(false);
-    }
-  };
-
-  const handleGetRoles = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const fetchedRoles = await getSwigRoles();
-      setRoles(fetchedRoles);
-    } catch (error) {
-      console.error('Failed to fetch roles:', error);
-      setError('Failed to fetch roles. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Add effect to log roles when they change
-  // useEffect(() => {
-  //   if (roles.length > 0) {
-  //     console.log('Roles updated in state:', roles);
-  //     console.log('First role in state capabilities:', {
-  //       canManageAuthority: roles[0]?.canManageAuthority?.(),
-  //       canSpendSol: roles[0]?.canSpendSol?.(),
-  //       id: roles[0]?.id?.toString(),
-  //     });
-  //   }
-  // }, [roles]);
 
   const handleAddRole = async () => {
-    if (!swigAddress || !solAmount || !roleName) return;
-
-    try {
-      setIsAddingRole(true);
-      setError(null);
-      const connection = new Connection('http://localhost:8899', 'confirmed');
-      const swig = await fetchSwig(connection, new PublicKey(swigAddress));
-
-      // Find the root role that can manage authority
-      const rootRole = swig.roles.find((role) => role.canManageAuthority());
-      if (!rootRole) {
-        throw new Error('No role found with authority management permissions');
-      }
-
-      // Create a new authority for the role
-      const newKeypair = Keypair.generate();
-      const newAuthority = new Ed25519Authority(newKeypair.publicKey);
-
-      // Set up actions with SOL spending limit
-      const actions = Actions.set();
-      const solAmountInLamports = BigInt(Number(solAmount) * LAMPORTS_PER_SOL);
-      actions.solLimit({ amount: solAmountInLamports });
-
-      // Get the root keypair from localStorage
-      const rootKeypairSecret = localStorage.getItem('rootKeypair');
-      if (!rootKeypairSecret) {
-        throw new Error('Root keypair not found');
-      }
-      const rootKeypair = Keypair.fromSecretKey(
-        new Uint8Array(JSON.parse(rootKeypairSecret))
-      );
-
-      // Create the instruction to add the new authority
-      const addAuthorityIx = addAuthorityInstruction(
-        rootRole,
-        rootKeypair.publicKey,
-        newAuthority,
-        actions.get()
-      );
-
-      // Create and sign the transaction
-      const transaction = new Transaction().add(addAuthorityIx);
-      transaction.feePayer = rootKeypair.publicKey;
-      transaction.recentBlockhash = (
-        await connection.getLatestBlockhash()
-      ).blockhash;
-
-      // Sign the transaction with the root keypair
-      transaction.sign(rootKeypair);
-
-      // Send and confirm the transaction
-      const signature = await connection.sendRawTransaction(
-        transaction.serialize()
-      );
-      await connection.confirmTransaction({
-        signature,
-        blockhash: transaction.recentBlockhash,
-        lastValidBlockHeight: (
-          await connection.getLatestBlockhash()
-        ).lastValidBlockHeight,
-      });
-
-      console.log('Transaction confirmed:', signature);
-
-      // Refresh roles after adding
-      const updatedRoles = await getSwigRoles();
-      // Update the name of the newly added role
-      const newRoles = updatedRoles.map((role, index) => {
-        // Create a new object that maintains the role's prototype chain
-        const roleWithName = Object.create(Object.getPrototypeOf(role));
-        // Copy all properties from the original role
-        Object.assign(roleWithName, role);
-        // Add or update the name property
-        if (index === updatedRoles.length - 1) {
-          roleWithName.name = roleName;
-        } else {
-          roleWithName.name =
-            roleWithName.name || (index === 0 ? 'Root Role' : `Role ${index}`);
-        }
-        return roleWithName;
-      }) as RoleWithName[];
-      setRoles(newRoles);
-      setSolAmount('');
-      setRoleName('');
-    } catch (error) {
-      console.error('Failed to add role:', error);
-      setError('Failed to add role. Please try again.');
-    } finally {
-      setIsAddingRole(false);
-    }
+    if (!solAmount || !roleName) return;
+    await addRole(roleName, solAmount);
+    setSolAmount('');
+    setRoleName('');
   };
 
   if (!swigAddress) {
@@ -271,7 +77,7 @@ const SwigDashboard: React.FC<SwigDashboardProps> = ({
             </div>
           </div>
           <Button
-            onClick={handleSetupSwigWallet}
+            onClick={setupSwigWallet}
             disabled={isSettingUp || !!swigAddress}
           >
             {isSettingUp ? 'Setting up...' : 'Set up Swig wallet'}
@@ -286,34 +92,28 @@ const SwigDashboard: React.FC<SwigDashboardProps> = ({
     <div className='flex flex-col gap-2 items-center flex-grow w-full'>
       <div className='mb-6'>
         <h2 className='text-xl font-medium mb-2'>Swig Wallet Details</h2>
-        <p className='text-gray-600'>
+        <p>
           Address: <span className='font-mono'>{swigAddress}</span>
         </p>
       </div>
 
       <div className='mb-6'>
         <h2 className='text-xl font-medium mb-4'>Roles</h2>
-        <Button
-          variant='secondary'
-          onClick={handleGetRoles}
-          disabled={isLoading}
-        >
+        <Button variant='secondary' onClick={getRoles} disabled={isLoading}>
           {isLoading ? 'Loading...' : 'Get Swig roles'}
         </Button>
         {error && <p className='text-red-500 mt-2'>{error}</p>}
         {roles.length > 0 && (
           <div className='mt-4 flex gap-2 flex-wrap'>
             {roles.map((role, index) => {
-              // For the first role (root role), check if it has all permissions
               const isRootRole = index === 0;
               const hasAllPermissions =
                 isRootRole && role?.canSpendSol?.() === true;
 
-              // Binary search to find the exact SOL limit (only for non-root roles or root roles with limits)
               let maxSolAmount = 0;
               if (!hasAllPermissions && role?.canSpendSol) {
                 let left = BigInt(0);
-                let right = BigInt(100 * LAMPORTS_PER_SOL); // Start with 100 SOL as max
+                let right = BigInt(100 * LAMPORTS_PER_SOL);
                 let maxLamports = BigInt(0);
 
                 while (left <= right) {
