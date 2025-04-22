@@ -12,7 +12,6 @@ const SwigDashboard: React.FC<SwigDashboardProps> = () => {
     roles,
     swigAddress,
     isSettingUp,
-    isLoading,
     isAddingRole,
     error,
     permissionType,
@@ -51,9 +50,10 @@ const SwigDashboard: React.FC<SwigDashboardProps> = () => {
   };
 
   useEffect(() => {
-    const fetchBalance = async () => {
+    const fetchBalanceAndRoles = async () => {
       if (swigAddress) {
         try {
+          // Fetch balance
           const connection = new Connection(
             'http://localhost:8899',
             'confirmed'
@@ -63,14 +63,17 @@ const SwigDashboard: React.FC<SwigDashboardProps> = () => {
           );
           const balanceInSol = balanceInLamports / LAMPORTS_PER_SOL;
           setWalletBalance(balanceInSol);
+
+          // Fetch roles
+          await getRoles();
         } catch (error) {
-          console.error('Error fetching balance:', error);
+          console.error('Error fetching wallet data:', error);
         }
       }
     };
 
-    fetchBalance();
-  }, [swigAddress, isAddingRole]); // Refresh balance after adding roles
+    fetchBalanceAndRoles();
+  }, [swigAddress, isAddingRole, getRoles]);
 
   const handleAddRole = async () => {
     if (!solAmount || !roleName) return;
@@ -157,7 +160,7 @@ const SwigDashboard: React.FC<SwigDashboardProps> = () => {
             SOL
           </p>
           <div className='mt-3'>
-            <p className='text-sm font-medium mb-1'>Role Spending Limits:</p>
+            <p className='text-sm font-medium mb-1'>Role Permissions:</p>
             {roles.map((role, index) => {
               let limit = 0;
               if (role?.canSpendSol?.()) {
@@ -178,33 +181,45 @@ const SwigDashboard: React.FC<SwigDashboardProps> = () => {
                 limit = Number(maxLamports) / LAMPORTS_PER_SOL;
               }
               return (
-                <div
-                  key={index}
-                  className='flex justify-between items-center text-sm'
-                >
-                  <span>{role.name || `Role ${index + 1}`}:</span>
-                  <span
-                    className={
-                      role?.canSpendSol?.() ? 'text-blue-600' : 'text-gray-500'
-                    }
-                  >
-                    {role?.canSpendSol?.()
-                      ? `${limit.toFixed(4)} SOL`
-                      : 'No spending limit'}
-                  </span>
+                <div key={index} className='mb-3 last:mb-0'>
+                  <div className='flex justify-between items-center text-sm font-medium'>
+                    <span>{role.name || `Role ${index + 1}`}</span>
+                  </div>
+                  <div className='flex flex-col gap-1 mt-1 text-sm'>
+                    <div className='flex justify-between items-center'>
+                      <span className='text-gray-600'>Manage Authority:</span>
+                      <span
+                        className={
+                          role?.canManageAuthority?.()
+                            ? 'text-blue-600'
+                            : 'text-gray-500'
+                        }
+                      >
+                        {role?.canManageAuthority?.() ? 'Yes' : 'No'}
+                      </span>
+                    </div>
+                    <div className='flex justify-between items-center'>
+                      <span className='text-gray-600'>SOL Spending:</span>
+                      <span
+                        className={
+                          role?.canSpendSol?.()
+                            ? 'text-blue-600'
+                            : 'text-gray-500'
+                        }
+                      >
+                        {role?.canSpendSol?.()
+                          ? `${limit.toFixed(4)} SOL`
+                          : 'No permission'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               );
             })}
           </div>
         </div>
 
-        <h2 className='text-xl font-medium mb-4'>Roles</h2>
-        <Button variant='secondary' onClick={getRoles} disabled={isLoading}>
-          {isLoading ? 'Loading...' : 'Get Swig roles'}
-        </Button>
-        {error && <p className='text-red-500 mt-2'>{error}</p>}
-
-        <div className='mt-8 w-full flex flex-col items-center'>
+        <div className='w-full flex flex-col items-center'>
           <h2 className='text-xl font-medium mb-4 w-full'>Add New Role</h2>
           <div className='flex flex-col gap-4 w-1/2'>
             <div className='flex flex-col gap-2'>
