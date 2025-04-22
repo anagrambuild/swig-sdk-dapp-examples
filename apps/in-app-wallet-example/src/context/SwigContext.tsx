@@ -5,6 +5,7 @@ import {
   LAMPORTS_PER_SOL,
   Transaction,
   Keypair,
+  SystemProgram,
 } from '@solana/web3.js';
 import {
   fetchSwig,
@@ -154,31 +155,54 @@ export function SwigProvider({ children, walletAddress }: SwigProviderProps) {
         new Uint8Array(JSON.parse(rootKeypairSecret))
       );
 
+      // First check if root authority has enough SOL
+      const rootBalance = await connection.getBalance(rootKeypair.publicKey);
+      if (rootBalance < Number(solAmountInLamports)) {
+        throw new Error(
+          'Root authority does not have enough SOL to fund this role'
+        );
+      }
+
+      // Create a transaction that includes both the role creation and SOL transfer
+      const transaction = new Transaction();
+
+      // Add the authority instruction first
       const addAuthorityIx = addAuthorityInstruction(
         rootRole,
         rootKeypair.publicKey,
         newAuthority,
         actions.get()
       );
+      transaction.add(addAuthorityIx);
 
-      const transaction = new Transaction().add(addAuthorityIx);
+      // Then add the transfer instruction to fund the Swig wallet
+      const transferIx = SystemProgram.transfer({
+        fromPubkey: rootKeypair.publicKey,
+        toPubkey: new PublicKey(swigAddress),
+        lamports: Number(solAmountInLamports),
+      });
+      transaction.add(transferIx);
+
+      // Set up transaction
       transaction.feePayer = rootKeypair.publicKey;
-      transaction.recentBlockhash = (
-        await connection.getLatestBlockhash()
-      ).blockhash;
+      const { blockhash, lastValidBlockHeight } =
+        await connection.getLatestBlockhash();
+      transaction.recentBlockhash = blockhash;
 
+      // Sign and send the transaction
       transaction.sign(rootKeypair);
-
       const signature = await connection.sendRawTransaction(
         transaction.serialize()
       );
+
+      // Wait for confirmation
       await connection.confirmTransaction({
         signature,
-        blockhash: transaction.recentBlockhash,
-        lastValidBlockHeight: (
-          await connection.getLatestBlockhash()
-        ).lastValidBlockHeight,
+        blockhash,
+        lastValidBlockHeight,
       });
+
+      console.log(`Role created and funded with ${solAmount} SOL`);
 
       const updatedRoles = await getSwigRoles();
       const newRoles = updatedRoles.map((role, index) => {
