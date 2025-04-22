@@ -16,6 +16,10 @@ import {
 } from '@swig-wallet/classic';
 import { createSwigAccount } from '../../../utils/swig';
 
+interface RoleWithName extends Role {
+  name: string;
+}
+
 interface SwigDashboardProps {
   walletAddress?: string;
 }
@@ -25,7 +29,7 @@ const SwigDashboard: React.FC<SwigDashboardProps> = ({
 }: {
   walletAddress?: string;
 }) => {
-  const [roles, setRoles] = useState<Role[]>([]);
+  const [roles, setRoles] = useState<RoleWithName[]>([]);
   const [isSettingUp, setIsSettingUp] = useState(false);
   const [swigAddress, setSwigAddress] = useState<string | null>(null);
   const [permissionType, setPermissionType] = useState<'locked' | 'permissive'>(
@@ -34,6 +38,7 @@ const SwigDashboard: React.FC<SwigDashboardProps> = ({
 
   const [isLoading, setIsLoading] = useState(false);
   const [solAmount, setSolAmount] = useState<string>('');
+  const [roleName, setRoleName] = useState<string>('');
   const [isAddingRole, setIsAddingRole] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,7 +54,35 @@ const SwigDashboard: React.FC<SwigDashboardProps> = ({
     try {
       const connection = new Connection('http://localhost:8899', 'confirmed');
       const swig = await fetchSwig(connection, new PublicKey(swigAddress));
-      return swig.roles || [];
+      const fetchedRoles = swig.roles || [];
+
+      if (fetchedRoles[0]) {
+        const firstRole = fetchedRoles[0];
+        console.log('First role capabilities:', {
+          canManageAuthority: firstRole.canManageAuthority?.(),
+          canSpendSol: firstRole.canSpendSol?.(),
+          id: firstRole.id?.toString(),
+        });
+      }
+
+      // If we have more roles in swig than in our state, add them with default names
+      if (fetchedRoles.length > roles.length) {
+        // Create new roles while preserving the original role object
+        const newRoles = fetchedRoles.map((role, index) => {
+          // Create a new object that maintains the role's prototype chain
+          const roleWithName = Object.create(Object.getPrototypeOf(role));
+          // Copy all properties from the original role
+          Object.assign(roleWithName, role);
+          // Add the name property
+          roleWithName.name = index === 0 ? 'Root Role' : `Role ${index}`;
+          return roleWithName;
+        }) as RoleWithName[];
+
+        setRoles(newRoles);
+        return newRoles;
+      }
+
+      return roles;
     } catch (error) {
       console.error('Error fetching roles:', error);
       return [];
@@ -88,8 +121,20 @@ const SwigDashboard: React.FC<SwigDashboardProps> = ({
     }
   };
 
+  // Add effect to log roles when they change
+  // useEffect(() => {
+  //   if (roles.length > 0) {
+  //     console.log('Roles updated in state:', roles);
+  //     console.log('First role in state capabilities:', {
+  //       canManageAuthority: roles[0]?.canManageAuthority?.(),
+  //       canSpendSol: roles[0]?.canSpendSol?.(),
+  //       id: roles[0]?.id?.toString(),
+  //     });
+  //   }
+  // }, [roles]);
+
   const handleAddRole = async () => {
-    if (!swigAddress || !solAmount) return;
+    if (!swigAddress || !solAmount || !roleName) return;
 
     try {
       setIsAddingRole(true);
@@ -108,10 +153,9 @@ const SwigDashboard: React.FC<SwigDashboardProps> = ({
       const newAuthority = new Ed25519Authority(newKeypair.publicKey);
 
       // Set up actions with SOL spending limit
+      const actions = Actions.set();
       const solAmountInLamports = BigInt(Number(solAmount) * LAMPORTS_PER_SOL);
-      const actions = Actions.set()
-        .solLimit({ amount: solAmountInLamports })
-        .get();
+      actions.solLimit({ amount: solAmountInLamports });
 
       // Get the root keypair from localStorage
       const rootKeypairSecret = localStorage.getItem('rootKeypair');
@@ -127,7 +171,7 @@ const SwigDashboard: React.FC<SwigDashboardProps> = ({
         rootRole,
         rootKeypair.publicKey,
         newAuthority,
-        actions
+        actions.get()
       );
 
       // Create and sign the transaction
@@ -155,8 +199,25 @@ const SwigDashboard: React.FC<SwigDashboardProps> = ({
       console.log('Transaction confirmed:', signature);
 
       // Refresh roles after adding
-      await handleGetRoles();
+      const updatedRoles = await getSwigRoles();
+      // Update the name of the newly added role
+      const newRoles = updatedRoles.map((role, index) => {
+        // Create a new object that maintains the role's prototype chain
+        const roleWithName = Object.create(Object.getPrototypeOf(role));
+        // Copy all properties from the original role
+        Object.assign(roleWithName, role);
+        // Add or update the name property
+        if (index === updatedRoles.length - 1) {
+          roleWithName.name = roleName;
+        } else {
+          roleWithName.name =
+            roleWithName.name || (index === 0 ? 'Root Role' : `Role ${index}`);
+        }
+        return roleWithName;
+      }) as RoleWithName[];
+      setRoles(newRoles);
       setSolAmount('');
+      setRoleName('');
     } catch (error) {
       console.error('Failed to add role:', error);
       setError('Failed to add role. Please try again.');
@@ -245,13 +306,14 @@ const SwigDashboard: React.FC<SwigDashboardProps> = ({
             {roles.map((role, index) => {
               // For the first role (root role), check if it has all permissions
               const isRootRole = index === 0;
-              const hasAllPermissions = isRootRole && role.canSpendSol();
+              const hasAllPermissions =
+                isRootRole && role?.canSpendSol?.() === true;
 
               // Binary search to find the exact SOL limit (only for non-root roles or root roles with limits)
               let maxSolAmount = 0;
-              if (!hasAllPermissions) {
+              if (!hasAllPermissions && role?.canSpendSol) {
                 let left = BigInt(0);
-                let right = BigInt(100 * LAMPORTS_PER_SOL); // Start with 5 SOL as max
+                let right = BigInt(100 * LAMPORTS_PER_SOL); // Start with 100 SOL as max
                 let maxLamports = BigInt(0);
 
                 while (left <= right) {
@@ -267,21 +329,22 @@ const SwigDashboard: React.FC<SwigDashboardProps> = ({
                 maxSolAmount = Number(maxLamports) / LAMPORTS_PER_SOL;
               }
 
-              const roleId = role.id.toString();
-
               return (
                 <div
                   key={index}
                   className='p-4 border rounded shadow-md min-w-[200px]'
                 >
-                  <h3 className='font-medium'>Role {roleId}</h3>
+                  <h3 className='font-medium'>{role.name}</h3>
                   <div className='space-y-1'>
                     <p>
                       Can manage authority:{' '}
-                      {role.canManageAuthority() ? 'Yes' : 'No'}
+                      {role?.canManageAuthority?.() === true ? 'Yes' : 'No'}
                     </p>
-                    <p>Can spend SOL: {role.canSpendSol() ? 'Yes' : 'No'}</p>
-                    {role.canSpendSol() && (
+                    <p>
+                      Can spend SOL:{' '}
+                      {role?.canSpendSol?.() === true ? 'Yes' : 'No'}
+                    </p>
+                    {role?.canSpendSol?.() === true && (
                       <div>
                         <p>
                           Maximum SOL amount:{' '}
@@ -301,6 +364,19 @@ const SwigDashboard: React.FC<SwigDashboardProps> = ({
         <h2 className='text-xl font-medium mb-4'>Add New Role</h2>
         <div className='flex flex-col gap-4 max-w-md'>
           <div className='flex flex-col gap-2'>
+            <label htmlFor='roleName' className='text-sm font-medium'>
+              Role Name
+            </label>
+            <input
+              id='roleName'
+              type='text'
+              value={roleName}
+              onChange={(e) => setRoleName(e.target.value)}
+              placeholder='Enter role name'
+              className='px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+            />
+          </div>
+          <div className='flex flex-col gap-2'>
             <label htmlFor='solAmount' className='text-sm font-medium'>
               Maximum SOL Amount to Spend
             </label>
@@ -318,7 +394,7 @@ const SwigDashboard: React.FC<SwigDashboardProps> = ({
           <Button
             variant='secondary'
             onClick={handleAddRole}
-            disabled={isAddingRole || !solAmount}
+            disabled={isAddingRole || !solAmount || !roleName}
           >
             {isAddingRole ? 'Adding Role...' : 'Add New Role'}
           </Button>
