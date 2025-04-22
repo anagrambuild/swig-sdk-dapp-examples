@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@swig/ui';
 import { LAMPORTS_PER_SOL, Connection, PublicKey } from '@solana/web3.js';
 import { useSwigContext } from '../../../context/SwigContext';
+import { AddRoleModal } from './AddRoleModal';
+import { PlusIcon } from '@heroicons/react/24/outline';
 
 interface SwigDashboardProps {
   walletAddress?: string;
@@ -24,6 +26,7 @@ const SwigDashboard: React.FC<SwigDashboardProps> = () => {
   const [solAmount, setSolAmount] = useState<string>('');
   const [roleName, setRoleName] = useState<string>('');
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [isAddRoleModalOpen, setIsAddRoleModalOpen] = useState(false);
 
   // Add a function to calculate total spending limits
   const calculateTotalSpendingLimits = () => {
@@ -149,7 +152,16 @@ const SwigDashboard: React.FC<SwigDashboardProps> = () => {
 
       <div className='mb-6 w-full max-w-2xl'>
         <div className='p-4 border rounded bg-gray-50 mb-4'>
-          <h4 className='font-medium mb-2'>Swig Wallet Overview</h4>
+          <div className='flex justify-between items-center mb-2'>
+            <h4 className='font-medium'>Swig Wallet Overview</h4>
+            <Button
+              onClick={() => setIsAddRoleModalOpen(true)}
+              className='flex items-center gap-2'
+            >
+              <PlusIcon className='h-5 w-5' />
+              Add Role
+            </Button>
+          </div>
           {walletBalance !== null && (
             <p className='text-lg font-medium text-blue-600'>
               Total Balance: {walletBalance.toFixed(4)} SOL
@@ -218,49 +230,12 @@ const SwigDashboard: React.FC<SwigDashboardProps> = () => {
             })}
           </div>
         </div>
-
-        <div className='w-full flex flex-col items-center'>
-          <h2 className='text-xl font-medium mb-4 w-full'>Add New Role</h2>
-          <div className='flex flex-col gap-4 w-1/2'>
-            <div className='flex flex-col gap-2'>
-              <label htmlFor='roleName' className='text-sm font-medium'>
-                Role Name
-              </label>
-              <input
-                id='roleName'
-                type='text'
-                value={roleName}
-                onChange={(e) => setRoleName(e.target.value)}
-                placeholder='Enter role name'
-                className='px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-              />
-            </div>
-            <div className='flex flex-col gap-2'>
-              <label htmlFor='solAmount' className='text-sm font-medium'>
-                Maximum SOL Amount to Spend
-              </label>
-              <input
-                id='solAmount'
-                type='number'
-                value={solAmount}
-                onChange={(e) => setSolAmount(e.target.value)}
-                placeholder='Enter amount in SOL'
-                className='px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                min='0'
-                step='0.1'
-              />
-            </div>
-            <Button
-              variant='secondary'
-              onClick={handleAddRole}
-              disabled={isAddingRole || !solAmount || !roleName}
-            >
-              {isAddingRole ? 'Adding Role...' : 'Add New Role'}
-            </Button>
-            {error && <p className='text-red-500'>{error}</p>}
-          </div>
-        </div>
       </div>
+
+      <AddRoleModal
+        isOpen={isAddRoleModalOpen}
+        onClose={() => setIsAddRoleModalOpen(false)}
+      />
     </div>
   );
 };
