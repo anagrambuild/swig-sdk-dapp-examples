@@ -6,7 +6,10 @@ import {
   findSwigPda,
 } from '@swig-wallet/classic';
 
-export async function createSwigAccount(connection: Connection) {
+export async function createSwigAccount(
+  connection: Connection,
+  permissionType: 'locked' | 'permissive' = 'locked'
+) {
   // Generate a random ID for the Swig account
   const id = new Uint8Array(32);
   crypto.getRandomValues(id);
@@ -26,15 +29,20 @@ export async function createSwigAccount(connection: Connection) {
   // Create root authority
   const rootAuthority = new Ed25519Authority(rootKeypair.publicKey);
 
-  // Set up root actions (all permissions)
-  const rootActions = Actions.set().all().get();
+  // Set up root actions based on permission type
+  const rootActions = Actions.set();
+  if (permissionType === 'locked') {
+    rootActions.manageAuthority();
+  } else {
+    rootActions.all();
+  }
 
   // Create the Swig account
   await createSwig(
     connection,
     id,
     rootAuthority,
-    rootActions,
+    rootActions.get(),
     rootKeypair.publicKey,
     [rootKeypair]
   );

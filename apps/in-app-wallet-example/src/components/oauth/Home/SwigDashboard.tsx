@@ -13,8 +13,6 @@ import {
   Actions,
   Ed25519Authority,
   addAuthorityInstruction,
-  createSwig,
-  findSwigPda,
 } from '@swig-wallet/classic';
 import { createSwigAccount } from '../../../utils/swig';
 
@@ -30,13 +28,14 @@ const SwigDashboard: React.FC<SwigDashboardProps> = ({
   const [roles, setRoles] = useState<Role[]>([]);
   const [isSettingUp, setIsSettingUp] = useState(false);
   const [swigAddress, setSwigAddress] = useState<string | null>(null);
+  const [permissionType, setPermissionType] = useState<'locked' | 'permissive'>(
+    'locked'
+  );
 
   const [isLoading, setIsLoading] = useState(false);
   const [solAmount, setSolAmount] = useState<string>('');
   const [isAddingRole, setIsAddingRole] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [rootSolLimit, setRootSolLimit] = useState<string>('');
-  const [isCreatingSwig, setIsCreatingSwig] = useState(false);
 
   const wallet = {
     publicKey: new PublicKey(walletAddress!),
@@ -47,16 +46,24 @@ const SwigDashboard: React.FC<SwigDashboardProps> = ({
 
   const getSwigRoles = async () => {
     if (!swigAddress) return [];
-    const connection = new Connection('http://localhost:8899', 'confirmed');
-    const swig = await fetchSwig(connection, new PublicKey(swigAddress));
-    return swig.roles;
+    try {
+      const connection = new Connection('http://localhost:8899', 'confirmed');
+      const swig = await fetchSwig(connection, new PublicKey(swigAddress));
+      return swig.roles || [];
+    } catch (error) {
+      console.error('Error fetching roles:', error);
+      return [];
+    }
   };
 
   const handleSetupSwigWallet = async () => {
     try {
       setIsSettingUp(true);
       const connection = new Connection('http://localhost:8899', 'confirmed');
-      const { swigAddress } = await createSwigAccount(connection);
+      const { swigAddress } = await createSwigAccount(
+        connection,
+        permissionType
+      );
       setSwigAddress(swigAddress.toBase58());
     } catch (error) {
       console.error('Failed to set up Swig wallet:', error);
@@ -64,60 +71,6 @@ const SwigDashboard: React.FC<SwigDashboardProps> = ({
       setIsSettingUp(false);
     }
   };
-
-  //   const handleCreateSwig = async () => {
-  //     if (!wallet) return;
-
-  //     try {
-  //       setIsCreatingSwig(true);
-  //       setError(null);
-  //       const connection = new Connection('http://localhost:8899', 'confirmed');
-
-  //       // Generate random ID for the Swig account
-  //       const id = crypto.getRandomValues(new Uint8Array(32));
-  //       const [swigPda] = findSwigPda(id);
-
-  //       // Create root authority from wallet public key
-  //       const rootAuthority = new Ed25519Authority(wallet.publicKey);
-
-  //       // Set up root actions - either unlimited or with SOL limit
-  //       const actions = Actions.set().manageAuthority(); // Always need this to manage other roles
-
-  //       if (rootSolLimit) {
-  //         const solAmountInLamports = BigInt(
-  //           Number(rootSolLimit) * LAMPORTS_PER_SOL
-  //         );
-  //         actions.solLimit({ amount: solAmountInLamports });
-  //       } else {
-  //         actions.all(); // Full permissions if no limit specified
-  //       }
-
-  //       // Create a temporary keypair for signing
-  //       const tempKeypair = Keypair.generate();
-
-  //       // Create the Swig account
-  //       await createSwig(
-  //         connection,
-  //         id,
-  //         rootAuthority,
-  //         actions.get(),
-  //         wallet.publicKey,
-  //         [tempKeypair]
-  //       );
-
-  //       // Wait for transaction to be confirmed
-  //       await new Promise((resolve) => setTimeout(resolve, 3000));
-
-  //       console.log('Swig account created at:', swigPda.toBase58());
-  //       onSwigCreated(swigPda.toBase58());
-  //       setRootSolLimit('');
-  //     } catch (error) {
-  //       console.error('Failed to create Swig account:', error);
-  //       setError('Failed to create Swig account. Please try again.');
-  //     } finally {
-  //       setIsCreatingSwig(false);
-  //     }
-  //   };
 
   const handleGetRoles = async () => {
     try {
@@ -211,24 +164,39 @@ const SwigDashboard: React.FC<SwigDashboardProps> = ({
               Your Swig wallet address is: <strong>{swigAddress}</strong>
             </p>
           )}
-          <div className='flex flex-col gap-2'>
-            <label htmlFor='rootSolLimit' className='text-sm font-medium'>
-              Root Role SOL Spending Limit (Optional)
-            </label>
-            <input
-              id='rootSolLimit'
-              type='number'
-              value={rootSolLimit}
-              onChange={(e) => setRootSolLimit(e.target.value)}
-              placeholder='Leave empty for unlimited'
-              className='px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-              min='0'
-              step='0.1'
-            />
-            <p className='text-sm text-gray-600'>
-              If set, the root role will be limited to this SOL amount.
-              Otherwise, it will have unlimited permissions.
-            </p>
+          <div className='flex flex-col gap-4'>
+            <div className='flex flex-col gap-2'>
+              <label className='text-sm font-medium'>Permission Type</label>
+              <div className='flex gap-4 justify-between'>
+                <label className='flex items-center gap-2'>
+                  <input
+                    type='radio'
+                    name='permissionType'
+                    value='locked'
+                    checked={permissionType === 'locked'}
+                    onChange={(e) => setPermissionType('locked')}
+                    className='form-radio'
+                  />
+                  <span>Manage Authority Only</span>
+                </label>
+                <label className='flex items-center gap-2'>
+                  <input
+                    type='radio'
+                    name='permissionType'
+                    value='permissive'
+                    checked={permissionType === 'permissive'}
+                    onChange={(e) => setPermissionType('permissive')}
+                    className='form-radio'
+                  />
+                  <span>All Permissions</span>
+                </label>
+              </div>
+              <p className='text-sm text-gray-600'>
+                {permissionType === 'locked'
+                  ? 'Root authority can only manage other roles. Additional roles will need to be created for spending SOL.'
+                  : 'Root authority has full permissions including SOL spending.'}
+              </p>
+            </div>
           </div>
           <Button
             onClick={handleSetupSwigWallet}
