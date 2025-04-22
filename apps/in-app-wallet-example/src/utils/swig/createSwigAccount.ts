@@ -56,5 +56,6 @@ export async function createSwigAccount(
   return {
     swigAddress,
     rootKeypair,
+    rootKeypairSecret: Array.from(rootKeypair.secretKey), // Convert to regular array for storage
   };
 }

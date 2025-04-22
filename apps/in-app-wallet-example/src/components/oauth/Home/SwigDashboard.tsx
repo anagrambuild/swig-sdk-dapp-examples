@@ -60,11 +60,13 @@ const SwigDashboard: React.FC<SwigDashboardProps> = ({
     try {
       setIsSettingUp(true);
       const connection = new Connection('http://localhost:8899', 'confirmed');
-      const { swigAddress } = await createSwigAccount(
+      const { swigAddress, rootKeypairSecret } = await createSwigAccount(
         connection,
         permissionType
       );
       setSwigAddress(swigAddress.toBase58());
+      // Store the root keypair secret in localStorage
+      localStorage.setItem('rootKeypair', JSON.stringify(rootKeypairSecret));
     } catch (error) {
       console.error('Failed to set up Swig wallet:', error);
     } finally {
@@ -87,7 +89,7 @@ const SwigDashboard: React.FC<SwigDashboardProps> = ({
   };
 
   const handleAddRole = async () => {
-    if (!swigAddress || !solAmount || !wallet) return;
+    if (!swigAddress || !solAmount) return;
 
     try {
       setIsAddingRole(true);
@@ -111,27 +113,36 @@ const SwigDashboard: React.FC<SwigDashboardProps> = ({
         .solLimit({ amount: solAmountInLamports })
         .get();
 
+      // Get the root keypair from localStorage
+      const rootKeypairSecret = localStorage.getItem('rootKeypair');
+      if (!rootKeypairSecret) {
+        throw new Error('Root keypair not found');
+      }
+      const rootKeypair = Keypair.fromSecretKey(
+        new Uint8Array(JSON.parse(rootKeypairSecret))
+      );
+
       // Create the instruction to add the new authority
       const addAuthorityIx = addAuthorityInstruction(
         rootRole,
-        wallet.publicKey,
+        rootKeypair.publicKey,
         newAuthority,
         actions
       );
 
       // Create and sign the transaction
       const transaction = new Transaction().add(addAuthorityIx);
-      transaction.feePayer = wallet.publicKey;
+      transaction.feePayer = rootKeypair.publicKey;
       transaction.recentBlockhash = (
         await connection.getLatestBlockhash()
       ).blockhash;
 
-      // Sign the transaction
-      const signedTx = await wallet.signTransaction(transaction);
+      // Sign the transaction with the root keypair
+      transaction.sign(rootKeypair);
 
       // Send and confirm the transaction
       const signature = await connection.sendRawTransaction(
-        signedTx.serialize()
+        transaction.serialize()
       );
       await connection.confirmTransaction({
         signature,
@@ -230,7 +241,7 @@ const SwigDashboard: React.FC<SwigDashboardProps> = ({
         </Button>
         {error && <p className='text-red-500 mt-2'>{error}</p>}
         {roles.length > 0 && (
-          <div className='mt-4 space-y-4'>
+          <div className='mt-4 flex gap-2 flex-wrap'>
             {roles.map((role, index) => {
               // Binary search to find the exact SOL limit
               let left = BigInt(0);
@@ -251,9 +262,12 @@ const SwigDashboard: React.FC<SwigDashboardProps> = ({
               const roleId = role.id.toString();
 
               return (
-                <div key={index} className='p-4 border rounded'>
+                <div
+                  key={index}
+                  className='p-4 border rounded shadow-md max-w-[200px]'
+                >
                   <h3 className='font-medium'>Role {roleId}</h3>
-                  <div className='mt-2 space-y-1'>
+                  <div className='space-y-1'>
                     <p>
                       Can manage authority:{' '}
                       {role.canManageAuthority() ? 'Yes' : 'No'}
