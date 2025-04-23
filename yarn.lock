@@ -1116,7 +1116,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@heroicons/react@npm:^2.0.18":
+"@heroicons/react@npm:^2.0.18, @heroicons/react@npm:^2.2.0":
   version: 2.2.0
   resolution: "@heroicons/react@npm:2.2.0"
   peerDependencies:
@@ -3847,6 +3847,7 @@ __metadata:
   resolution: "@swig/in-app-wallet-example@workspace:apps/in-app-wallet-example"
   dependencies:
     "@getpara/web-sdk": "npm:^1.11.0"
+    "@heroicons/react": "npm:^2.2.0"
     "@solana/web3.js": "npm:^1.78.0"
     "@swig-wallet/classic": "npm:^0.2.0"
     "@swig-wallet/coder": "npm:^0.2.0"
