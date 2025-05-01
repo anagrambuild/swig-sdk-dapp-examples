@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@getpara/web-sdk": "^1.11.0",
+    "@heroicons/react": "^2.2.0",
     "@solana/web3.js": "^1.78.0",
     "@swig-wallet/classic": "^0.2.0",
     "@swig-wallet/coder": "^0.2.0",
