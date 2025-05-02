@@ -19,10 +19,16 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "devDependencies": {
+    "@esbuild-plugins/node-globals-polyfill": "^0.2.3",
+    "@esbuild-plugins/node-modules-polyfill": "^0.2.2",
     "@types/chrome": "^0.0.309",
+    "buffer": "^6.0.3",
     "prettier": "^2.8.8",
+    "process": "^0.11.10",
+    "rollup-plugin-node-polyfills": "^0.2.1",
     "turbo": "latest",
-    "typescript": "^5.0.4"
+    "typescript": "^5.0.4",
+    "vite-plugin-node-polyfills": "^0.23.0"
   },
   "engines": {
     "node": ">=16.0.0"

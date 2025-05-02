@@ -17,6 +17,7 @@ import {
 import { createSwigAccount } from '../utils/swig';
 
 interface RoleWithName extends Role {
+  rules: any;
   name: string;
 }
 

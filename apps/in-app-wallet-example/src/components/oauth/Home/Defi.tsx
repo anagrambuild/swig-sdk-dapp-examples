@@ -50,22 +50,9 @@ const Defi: React.FC<DefiProps> = ({ walletAddress, onLogout }) => {
 
           // Get the selected role's SOL limit
           const role = roles[parseInt(selectedRole)];
-          if (role?.canSpendSol?.()) {
-            let left = BigInt(0);
-            let right = BigInt(100 * LAMPORTS_PER_SOL);
-            let maxLamports = BigInt(0);
-
-            while (left <= right) {
-              const mid = (left + right) / BigInt(2);
-              if (role.canSpendSol(mid)) {
-                maxLamports = mid;
-                left = mid + BigInt(1);
-              } else {
-                right = mid - BigInt(1);
-              }
-            }
-
-            const maxSolAmount = Number(maxLamports) / LAMPORTS_PER_SOL;
+          const solLimit = role?.rules?.solLimit?.amount;
+          if (solLimit !== undefined) {
+            const maxSolAmount = Number(solLimit) / LAMPORTS_PER_SOL;
             setRoleLimit(maxSolAmount);
           } else {
             setRoleLimit(null);

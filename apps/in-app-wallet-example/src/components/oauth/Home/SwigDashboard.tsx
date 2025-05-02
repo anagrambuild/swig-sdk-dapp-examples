@@ -31,22 +31,9 @@ const SwigDashboard: React.FC<SwigDashboardProps> = () => {
   // Add a function to calculate total spending limits
   const calculateTotalSpendingLimits = () => {
     return roles.reduce((total, role) => {
-      if (role?.canSpendSol?.()) {
-        let left = BigInt(0);
-        let right = BigInt(100 * LAMPORTS_PER_SOL);
-        let maxLamports = BigInt(0);
-
-        while (left <= right) {
-          const mid = (left + right) / BigInt(2);
-          if (role.canSpendSol(mid)) {
-            maxLamports = mid;
-            left = mid + BigInt(1);
-          } else {
-            right = mid - BigInt(1);
-          }
-        }
-
-        return total + Number(maxLamports) / LAMPORTS_PER_SOL;
+      const solLimit = role?.rules?.solLimit?.amount;
+      if (solLimit !== undefined) {
+        return total + Number(solLimit) / LAMPORTS_PER_SOL;
       }
       return total;
     }, 0);
@@ -56,14 +43,8 @@ const SwigDashboard: React.FC<SwigDashboardProps> = () => {
     const fetchBalanceAndRoles = async () => {
       if (swigAddress) {
         try {
-          // Fetch balance
-          const connection = new Connection(
-            'http://localhost:8899',
-            'confirmed'
-          );
-          const balanceInLamports = await connection.getBalance(
-            new PublicKey(swigAddress)
-          );
+          const connection = new Connection('http://localhost:8899', 'confirmed');
+          const balanceInLamports = await connection.getBalance(new PublicKey(swigAddress));
           const balanceInSol = balanceInLamports / LAMPORTS_PER_SOL;
           setWalletBalance(balanceInSol);
 
@@ -129,10 +110,7 @@ const SwigDashboard: React.FC<SwigDashboardProps> = () => {
               </p>
             </div>
           </div>
-          <Button
-            onClick={setupSwigWallet}
-            disabled={isSettingUp || !!swigAddress}
-          >
+          <Button onClick={setupSwigWallet} disabled={isSettingUp || !!swigAddress}>
             {isSettingUp ? 'Setting up...' : 'Set up Swig wallet'}
           </Button>
           {error && <p className='text-red-500'>{error}</p>}
@@ -168,30 +146,13 @@ const SwigDashboard: React.FC<SwigDashboardProps> = () => {
             </p>
           )}
           <p className='text-sm text-gray-600 mt-1'>
-            Total Spending Limits: {calculateTotalSpendingLimits().toFixed(4)}{' '}
-            SOL
+            Total Spending Limits: {calculateTotalSpendingLimits().toFixed(4)} SOL
           </p>
           <div className='mt-3'>
             <p className='text-sm font-medium mb-1'>Role Permissions:</p>
             {roles.map((role, index) => {
-              let limit = 0;
-              if (role?.canSpendSol?.()) {
-                let left = BigInt(0);
-                let right = BigInt(100 * LAMPORTS_PER_SOL);
-                let maxLamports = BigInt(0);
-
-                while (left <= right) {
-                  const mid = (left + right) / BigInt(2);
-                  if (role.canSpendSol(mid)) {
-                    maxLamports = mid;
-                    left = mid + BigInt(1);
-                  } else {
-                    right = mid - BigInt(1);
-                  }
-                }
-
-                limit = Number(maxLamports) / LAMPORTS_PER_SOL;
-              }
+              const solLimit = role?.rules?.solLimit?.amount;
+              const limit = solLimit !== undefined ? Number(solLimit) / LAMPORTS_PER_SOL : 0;
               return (
                 <div key={index} className='mb-3 last:mb-0'>
                   <div className='flex justify-between items-center text-sm font-medium'>
@@ -202,9 +163,7 @@ const SwigDashboard: React.FC<SwigDashboardProps> = () => {
                       <span className='text-gray-600'>Manage Authority:</span>
                       <span
                         className={
-                          role?.canManageAuthority?.()
-                            ? 'text-blue-600'
-                            : 'text-gray-500'
+                          role?.canManageAuthority?.() ? 'text-blue-600' : 'text-gray-500'
                         }
                       >
                         {role?.canManageAuthority?.() ? 'Yes' : 'No'}
@@ -214,14 +173,10 @@ const SwigDashboard: React.FC<SwigDashboardProps> = () => {
                       <span className='text-gray-600'>SOL Spending:</span>
                       <span
                         className={
-                          role?.canSpendSol?.()
-                            ? 'text-blue-600'
-                            : 'text-gray-500'
+                          solLimit !== undefined ? 'text-blue-600' : 'text-gray-500'
                         }
                       >
-                        {role?.canSpendSol?.()
-                          ? `${limit.toFixed(4)} SOL`
-                          : 'No permission'}
+                        {solLimit !== undefined ? `${limit.toFixed(4)} SOL` : 'No permission'}
                       </span>
                     </div>
                   </div>
