@@ -101,3 +101,30 @@ export async function getRoleCapabilities(
     canSpendSol: role.canSpendSol(),
   };
 }
+
+export async function sendAndConfirm(
+  connection: Connection,
+  ix: Transaction | TransactionInstruction,
+  feePayer: Keypair,
+  extraSigners: Keypair[] = []
+): Promise<string> {
+  const tx = ix instanceof Transaction ? ix : new Transaction().add(ix);
+
+  tx.feePayer = feePayer.publicKey;
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+  tx.recentBlockhash = blockhash;
+
+  tx.sign(feePayer, ...extraSigners);
+
+  const sig = await connection.sendRawTransaction(tx.serialize(), {
+    skipPreflight: true,
+  });
+
+  await connection.confirmTransaction(
+    { signature: sig, blockhash, lastValidBlockHeight },
+    'confirmed'
+  );
+
+  return sig;
+}
+
