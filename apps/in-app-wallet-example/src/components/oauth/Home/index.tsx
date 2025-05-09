@@ -12,7 +12,7 @@ interface HomeProps {
 }
 
 export const Home: React.FC<HomeProps> = ({ walletAddress, onLogout }) => {
-  const [view, setView] = useState<'home' | 'swig' | 'token'>('home');
+  const [view, setView] = useState<'home' | 'swig' | 'gas'>('home');
 
   return (
     <SwigProvider walletAddress={walletAddress!}>
@@ -24,15 +24,15 @@ export const Home: React.FC<HomeProps> = ({ walletAddress, onLogout }) => {
           <Tab isSelected={view === 'swig'} onClick={() => setView('swig')}>
             Swig Dashboard
           </Tab>
-          <Tab isSelected={view === 'token'} onClick={() => setView('token')}>
-            Swig Token Demo
+          <Tab isSelected={view === 'gas'} onClick={() => setView('gas')}>
+            Swig gas Demo
           </Tab>
         </Tabs>
         {view === 'home' && (
           <Defi walletAddress={walletAddress!} onLogout={onLogout} />
         )}
         {view === 'swig' && <SwigDashboard walletAddress={walletAddress!} />}
-        {view === 'token' && <SwigTokenDemo />}
+        {view === 'gas' && <SwigTokenDemo />}
       </div>
     </SwigProvider>
   );
