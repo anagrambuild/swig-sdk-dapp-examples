@@ -25,7 +25,7 @@ export const Home: React.FC<HomeProps> = ({ walletAddress, onLogout }) => {
             Swig Dashboard
           </Tab>
           <Tab isSelected={view === 'gas'} onClick={() => setView('gas')}>
-            Swig gas Demo
+            Swig Gas Demo
           </Tab>
         </Tabs>
         {view === 'home' && (

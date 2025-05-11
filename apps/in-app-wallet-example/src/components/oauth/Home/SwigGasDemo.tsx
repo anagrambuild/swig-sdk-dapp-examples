@@ -23,11 +23,15 @@ import {
 import { Button } from '@swig/ui';
 import { useSwigContext } from '../../../context/SwigContext';
 import { sendAndConfirm } from '../../../utils/swig';
+import SwigAdd from './SwigAdd';
 
 const connection = new Connection('http://localhost:8899', 'confirmed');
 
 export default function SwigTokenDemo() {
-  const { swigAddress, getRoles } = useSwigContext();
+  const {
+    swigAddress,
+    getRoles,
+  } = useSwigContext();
 
   const [status, setStatus] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -187,10 +191,14 @@ export default function SwigTokenDemo() {
     },
   ];
 
+  if (!swigAddress) {
+    return <SwigAdd />;
+  }
+
   return (
     <div className='p-6 max-w-6xl mx-auto'>
       <h2 className='text-2xl font-semibold mb-6'>Swig Gas Sponsorship Demo</h2>
-      <div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
+      <div className='grid grid-cols-1 gap-8'>
 
         <div className='space-y-6'>
           {steps.map((step, index) => (
@@ -199,7 +207,7 @@ export default function SwigTokenDemo() {
           <Button variant='secondary' onClick={reset}>Reset</Button>
         </div>
 
-        <div className='space-y-6 text-sm'>
+        <div className='space-y-4 text-sm'>
           {status && <div className='text-sm' dangerouslySetInnerHTML={{ __html: status }} />}
           {error && (
             <p className='text-red-600 border border-red-200 p-2 rounded'>
@@ -216,31 +224,38 @@ export default function SwigTokenDemo() {
               View Transaction on Solana Explorer
             </a>
           )}
-
-          {(swigAddress || recipient) && (
-            <div className='border-t pt-4 space-y-3'>
-              <h3 className='font-medium text-gray-800'>Wallet Info</h3>
-              {swigAddress && (
-                <div>
-                  <p className='text-gray-600'>Swig Wallet:</p>
-                  <p className='font-mono break-all'>{swigAddress}</p>
-                  <p className='text-blue-600'>
-                    USDC: {swigUsdcBalance !== null ? swigUsdcBalance.toFixed(4) : '--'}
-                  </p>
-                </div>
-              )}
-              {recipient && (
-                <div>
-                  <p className='text-gray-600'>Recipient Wallet:</p>
-                  <p className='font-mono break-all'>{recipient.publicKey.toBase58()}</p>
-                  <p className='text-green-600'>
-                    USDC: {recipUsdcBalance !== null ? recipUsdcBalance.toFixed(4) : '--'}
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
         </div>
+      </div>
+
+      {/* Wallet Cards */}
+      <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mt-6'>
+        {swigAddress && (
+          <div className='border p-4 rounded shadow-sm'>
+            <h3 className='font-semibold text-lg mb-2'>Swig Wallet</h3>
+            <p className='text-gray-600'>Address:</p>
+            <p className='font-mono break-all mb-2'>{swigAddress}</p>
+            <p className='text-blue-600'>
+              USDC Balance: {swigUsdcBalance !== null ? swigUsdcBalance.toFixed(2) : '--'}
+            </p>
+          </div>
+        )}
+        {recipient && (
+          <div className='border p-4 rounded shadow-sm'>
+            <h3 className='font-semibold text-lg mb-2'>Recipient Wallet</h3>
+            <p className='text-gray-600'>Address:</p>
+            <p className='font-mono break-all mb-2'>{recipient.publicKey.toBase58()}</p>
+            <p className='text-green-600'>
+              USDC Balance: {recipUsdcBalance !== null ? recipUsdcBalance.toFixed(2) : '--'}
+            </p>
+          </div>
+        )}
+        {devWallet && (
+          <div className='border p-4 rounded shadow-sm col-span-1 md:col-span-2'>
+            <h3 className='font-semibold text-lg mb-2'>Developer Wallet (Fee Payer)</h3>
+            <p className='text-gray-600'>Address:</p>
+            <p className='font-mono break-all'>{devWallet.publicKey.toBase58()}</p>
+          </div>
+        )}
       </div>
     </div>
   );
