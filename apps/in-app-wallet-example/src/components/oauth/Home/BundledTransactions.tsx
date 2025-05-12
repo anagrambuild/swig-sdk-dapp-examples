@@ -65,7 +65,7 @@ const BundledTransactions: React.FC = () => {
       if (swigAddress && selectedRole) {
         try {
           const connection = new Connection(
-            'https://api.devnet.solana.com',
+            'http://localhost:8899',
             'confirmed'
           );
 
@@ -117,9 +117,7 @@ const BundledTransactions: React.FC = () => {
   // Helper function to get explorer URL
   const getExplorerUrl = (signature: string) => {
     const baseUrl = 'https://explorer.solana.com';
-    const encodedLocalhost = encodeURIComponent(
-      'https://api.devnet.solana.com'
-    );
+    const encodedLocalhost = encodeURIComponent('http://localhost:8899');
     return `${baseUrl}/tx/${signature}?cluster=custom&customUrl=${encodedLocalhost}`;
   };
 
@@ -191,10 +189,7 @@ const BundledTransactions: React.FC = () => {
     setIsProcessing(true);
 
     try {
-      const connection = new Connection(
-        'https://api.devnet.solana.com',
-        'confirmed'
-      );
+      const connection = new Connection('http://localhost:8899', 'confirmed');
 
       // Get the root keypair from localStorage
       const rootKeypairSecret = localStorage.getItem('rootKeypair');
