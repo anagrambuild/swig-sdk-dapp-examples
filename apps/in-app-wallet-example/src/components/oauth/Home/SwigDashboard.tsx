@@ -14,12 +14,7 @@ const SwigDashboard: React.FC<SwigDashboardProps> = () => {
   const {
     roles,
     swigAddress,
-    isSettingUp,
     isAddingRole,
-    error,
-    permissionType,
-    setPermissionType,
-    setupSwigWallet,
     getRoles,
     addRole,
   } = useSwigContext();
