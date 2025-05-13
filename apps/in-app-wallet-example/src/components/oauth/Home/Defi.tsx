@@ -185,7 +185,7 @@ const Defi: React.FC<DefiProps> = ({ walletAddress, onLogout, setView }) => {
   return (
     <div className="flex flex-col gap-2 justify-between flex-grow">
       <div className="flex flex-col gap-4 justify-center">
-        <h2 className="text-xl font-medium mb-2">You are logged in!</h2>
+        <h2 className="text-xl font-medium mb-2">Basic demo of sending SOL</h2>
         {walletAddress ? (
           <div className="flex flex-col gap-2">
             <p>
@@ -200,7 +200,6 @@ const Defi: React.FC<DefiProps> = ({ walletAddress, onLogout, setView }) => {
         ) : (
           <p>No wallet found.</p>
         )}
-        <h2 className="text-lg font-medium mb-2">basic demo of sending SOL</h2>
 
         {swigAddress && roles.length > 0 ? (
           <div className="flex flex-col gap-2 max-w-md mx-auto mt-4">
