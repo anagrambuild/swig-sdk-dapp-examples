@@ -204,7 +204,7 @@ const BundledTransactions: React.FC = () => {
       );
 
       // Create the authority from the root keypair
-      const authority = new Ed25519Authority(rootKeypair.publicKey);
+      const authority = Ed25519Authority.fromPublicKey(rootKeypair.publicKey);
 
       // Execute first transaction
       try {

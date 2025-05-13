@@ -1,10 +1,5 @@
 import { useState } from "react";
-import {
-  Connection,
-  Keypair,
-  LAMPORTS_PER_SOL,
-  PublicKey,
-} from "@solana/web3.js";
+import { Connection, Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import {
   createMint,
   getOrCreateAssociatedTokenAccount,
@@ -56,11 +51,7 @@ export default function SwigTokenDemo() {
     setRecipUsdcBalance(Number(recipBalance.value.uiAmountString));
   };
 
-  const handle = async (
-    label: string,
-    fn: () => Promise<void>,
-    stepIndex: number
-  ) => {
+  const handle = async (label: string, fn: () => Promise<void>, stepIndex: number) => {
     setStatus(`<span class='text-orange-500'>${label} (in progress)</span>`);
     setError(null);
     try {
@@ -105,11 +96,7 @@ export default function SwigTokenDemo() {
 
             const rootKeypairSecret = localStorage.getItem("rootKeypair");
             if (!rootKeypairSecret) throw new Error("Root keypair not found.");
-            setRootKeypair(
-              Keypair.fromSecretKey(
-                new Uint8Array(JSON.parse(rootKeypairSecret))
-              )
-            );
+            setRootKeypair(Keypair.fromSecretKey(new Uint8Array(JSON.parse(rootKeypairSecret))));
           },
           0
         ),
@@ -137,15 +124,8 @@ export default function SwigTokenDemo() {
         handle(
           "Mint + Token Accounts",
           async () => {
-            if (!devWallet || !recipient || !swigAddress)
-              throw new Error("Missing dependencies");
-            const mint = await createMint(
-              connection,
-              devWallet,
-              devWallet.publicKey,
-              null,
-              6
-            );
+            if (!devWallet || !recipient || !swigAddress) throw new Error("Missing dependencies");
+            const mint = await createMint(connection, devWallet, devWallet.publicKey, null, 6);
             setUsdcMint(mint);
 
             const swigAta = await getOrCreateAssociatedTokenAccount(
@@ -174,8 +154,7 @@ export default function SwigTokenDemo() {
         handle(
           "Minting 1000 USDC",
           async () => {
-            if (!usdcMint || !swigUsdcAta || !devWallet)
-              throw new Error("Minting failed");
+            if (!usdcMint || !swigUsdcAta || !devWallet) throw new Error("Minting failed");
             await mintTo(
               connection,
               devWallet,
@@ -198,15 +177,15 @@ export default function SwigTokenDemo() {
             if (!swig || !rootKeypair || !usdcMint || !devWallet)
               throw new Error("Missing role deps");
 
-            const rootAuth = new Ed25519Authority(rootKeypair.publicKey);
-            const devAuth = new Ed25519Authority(devWallet.publicKey);
+            const rootAuth = Ed25519Authority.fromPublicKey(rootKeypair.publicKey);
+            const devAuth = Ed25519Authority.fromPublicKey(devWallet.publicKey);
             const ix = await addAuthorityInstruction(
               swig.findRoleByAuthority(rootAuth)!,
               rootKeypair.publicKey,
               devAuth,
               Actions.set()
                 .tokenLimit({
-                  mint: usdcMint.toBuffer(),
+                  mint: usdcMint,
                   amount: BigInt(1000 * 10 ** 6),
                 })
                 .get()
@@ -224,13 +203,7 @@ export default function SwigTokenDemo() {
         handle(
           "Transferring 250 USDC",
           async () => {
-            if (
-              !swigUsdcAta ||
-              !recipUsdcAta ||
-              !swigAddress ||
-              !devRole ||
-              !devWallet
-            ) {
+            if (!swigUsdcAta || !recipUsdcAta || !swigAddress || !devRole || !devWallet) {
               throw new Error("Transfer missing dependencies");
             }
 
@@ -243,9 +216,7 @@ export default function SwigTokenDemo() {
               TOKEN_PROGRAM_ID
             );
 
-            const signed = await signInstruction(devRole, devWallet.publicKey, [
-              ix,
-            ]);
+            const signed = await signInstruction(devRole, devWallet.publicKey, [ix]);
             const sig = await sendAndConfirm(connection, signed, devWallet);
             setTxUrl(`https://explorer.solana.com/tx/${sig}?cluster=custom`);
             await getRoles();
@@ -279,16 +250,9 @@ export default function SwigTokenDemo() {
         </div>
 
         <div className="space-y-4 text-sm">
-          {status && (
-            <div
-              className="text-sm"
-              dangerouslySetInnerHTML={{ __html: status }}
-            />
-          )}
+          {status && <div className="text-sm" dangerouslySetInnerHTML={{ __html: status }} />}
           {error && (
-            <p className="text-red-600 border border-red-200 p-2 rounded">
-              Error: {error}
-            </p>
+            <p className="text-red-600 border border-red-200 p-2 rounded">Error: {error}</p>
           )}
           {txUrl && (
             <a
@@ -311,8 +275,7 @@ export default function SwigTokenDemo() {
             <p className="text-gray-600">Address:</p>
             <p className="font-mono break-all mb-2">{swigAddress}</p>
             <p className="text-blue-600">
-              USDC Balance:{" "}
-              {swigUsdcBalance !== null ? swigUsdcBalance.toFixed(2) : "--"}
+              USDC Balance: {swigUsdcBalance !== null ? swigUsdcBalance.toFixed(2) : "--"}
             </p>
           </div>
         )}
@@ -320,24 +283,17 @@ export default function SwigTokenDemo() {
           <div className="border p-4 rounded shadow-sm">
             <h3 className="font-semibold text-lg mb-2">Recipient Wallet</h3>
             <p className="text-gray-600">Address:</p>
-            <p className="font-mono break-all mb-2">
-              {recipient.publicKey.toBase58()}
-            </p>
+            <p className="font-mono break-all mb-2">{recipient.publicKey.toBase58()}</p>
             <p className="text-green-600">
-              USDC Balance:{" "}
-              {recipUsdcBalance !== null ? recipUsdcBalance.toFixed(2) : "--"}
+              USDC Balance: {recipUsdcBalance !== null ? recipUsdcBalance.toFixed(2) : "--"}
             </p>
           </div>
         )}
         {devWallet && (
           <div className="border p-4 rounded shadow-sm col-span-1 md:col-span-2">
-            <h3 className="font-semibold text-lg mb-2">
-              Developer Wallet (Fee Payer)
-            </h3>
+            <h3 className="font-semibold text-lg mb-2">Developer Wallet (Fee Payer)</h3>
             <p className="text-gray-600">Address:</p>
-            <p className="font-mono break-all">
-              {devWallet.publicKey.toBase58()}
-            </p>
+            <p className="font-mono break-all">{devWallet.publicKey.toBase58()}</p>
           </div>
         )}
       </div>

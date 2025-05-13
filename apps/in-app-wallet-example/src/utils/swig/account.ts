@@ -42,7 +42,7 @@ export async function refreshSwigAccount(
 }
 
 export function createAuthorityFromKeypair(keypair: Keypair): Ed25519Authority {
-  return new Ed25519Authority(keypair.publicKey);
+  return Ed25519Authority.fromPublicKey(keypair.publicKey);
 }
 
 export function generateNewAuthority(): {
@@ -50,6 +50,6 @@ export function generateNewAuthority(): {
   keypair: Keypair;
 } {
   const keypair = Keypair.generate();
-  const authority = new Ed25519Authority(keypair.publicKey);
+  const authority = Ed25519Authority.fromPublicKey(keypair.publicKey);
   return { authority, keypair };
 }

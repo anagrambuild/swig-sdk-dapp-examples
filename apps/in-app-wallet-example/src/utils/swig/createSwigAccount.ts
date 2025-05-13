@@ -1,14 +1,9 @@
-import { Connection, Keypair, LAMPORTS_PER_SOL } from '@solana/web3.js';
-import {
-  Actions,
-  createSwig,
-  Ed25519Authority,
-  findSwigPda,
-} from '@swig-wallet/classic';
+import { Connection, Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { Actions, createSwig, Ed25519Authority, findSwigPda } from "@swig-wallet/classic";
 
 export async function createSwigAccount(
   connection: Connection,
-  permissionType: 'locked' | 'permissive' = 'locked'
+  permissionType: "locked" | "permissive" = "locked"
 ) {
   try {
     // Generate a random ID for the Swig account
@@ -21,7 +16,7 @@ export async function createSwigAccount(
     // Find the Swig PDA
     const [swigAddress] = findSwigPda(id);
 
-    console.log('Requesting airdrop for root authority...');
+    console.log("Requesting airdrop for root authority...");
     // Request airdrop for the root authority only (PDAs cannot receive airdrops)
     const signature = await connection.requestAirdrop(
       rootKeypair.publicKey,
@@ -30,20 +25,20 @@ export async function createSwigAccount(
 
     // Wait for airdrop to be confirmed
     await connection.confirmTransaction(signature);
-    console.log('Airdrop confirmed');
+    console.log("Airdrop confirmed");
 
     // Create root authority
-    const rootAuthority = new Ed25519Authority(rootKeypair.publicKey);
+    const rootAuthority = Ed25519Authority.fromPublicKey(rootKeypair.publicKey);
 
     // Set up root actions based on permission type
     const rootActions = Actions.set();
-    if (permissionType === 'locked') {
+    if (permissionType === "locked") {
       rootActions.manageAuthority();
     } else {
       rootActions.all();
     }
 
-    console.log('Creating Swig account...');
+    console.log("Creating Swig account...");
     // Create the Swig account
     const tx = await createSwig(
       connection,
@@ -56,17 +51,13 @@ export async function createSwigAccount(
 
     // Wait for transaction to be confirmed
     await connection.confirmTransaction(tx);
-    console.log('Swig account created successfully!');
-    console.log('Swig address:', swigAddress.toBase58());
-    console.log('Root authority address:', rootKeypair.publicKey.toBase58());
+    console.log("Swig account created successfully!");
+    console.log("Swig address:", swigAddress.toBase58());
+    console.log("Root authority address:", rootKeypair.publicKey.toBase58());
 
     // Get the balance of the root authority
     const rootBalance = await connection.getBalance(rootKeypair.publicKey);
-    console.log(
-      'Root authority balance:',
-      rootBalance / LAMPORTS_PER_SOL,
-      'SOL'
-    );
+    console.log("Root authority balance:", rootBalance / LAMPORTS_PER_SOL, "SOL");
 
     return {
       swigAddress,
@@ -74,7 +65,7 @@ export async function createSwigAccount(
       rootKeypairSecret: Array.from(rootKeypair.secretKey), // Convert to regular array for storage
     };
   } catch (error) {
-    console.error('Error in createSwigAccount:', error);
+    console.error("Error in createSwigAccount:", error);
     throw error;
   }
 }
