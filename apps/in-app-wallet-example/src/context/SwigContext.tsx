@@ -141,7 +141,7 @@ export function SwigProvider({ children, walletAddress }: SwigProviderProps) {
       }
 
       const newKeypair = Keypair.generate();
-      const newAuthority = new Ed25519Authority(newKeypair.publicKey);
+      const newAuthority = Ed25519Authority.fromPublicKey(newKeypair.publicKey);
 
       const actions = Actions.set();
       const solAmountInLamports = BigInt(Number(solAmount) * LAMPORTS_PER_SOL);
@@ -167,7 +167,7 @@ export function SwigProvider({ children, walletAddress }: SwigProviderProps) {
       const transaction = new Transaction();
 
       // Add the authority instruction first
-      const addAuthorityIx = addAuthorityInstruction(
+      const addAuthorityIx = await addAuthorityInstruction(
         rootRole,
         rootKeypair.publicKey,
         newAuthority,

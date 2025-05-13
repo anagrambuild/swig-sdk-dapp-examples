@@ -5,12 +5,8 @@ import {
   LAMPORTS_PER_SOL,
   Transaction,
   TransactionInstruction,
-} from '@solana/web3.js';
-import {
-  Ed25519Authority,
-  fetchSwig,
-  signInstruction,
-} from '@swig-wallet/classic';
+} from "@solana/web3.js";
+import { Ed25519Authority, fetchSwig, signInstruction } from "@swig-wallet/classic";
 
 export interface TransactionLimits {
   solAmount: number;
@@ -24,9 +20,7 @@ export async function sendTransaction(
   const transaction = new Transaction();
   transaction.instructions = [instruction];
   transaction.feePayer = payer.publicKey;
-  transaction.recentBlockhash = (
-    await connection.getLatestBlockhash()
-  ).blockhash;
+  transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
 
   transaction.sign(payer);
 
@@ -45,14 +39,12 @@ export async function checkTransactionLimits(
   const role = swig.findRoleByAuthority(authority);
 
   if (!role) {
-    throw new Error('Role not found for authority');
+    throw new Error("Role not found for authority");
   }
 
   // Check SOL limit
   if (limits.solAmount > 0) {
-    const canSpendSol = role.canSpendSol(
-      BigInt(limits.solAmount * LAMPORTS_PER_SOL)
-    );
+    const canSpendSol = role.canSpendSol(BigInt(limits.solAmount * LAMPORTS_PER_SOL));
     if (!canSpendSol) {
       return false;
     }
@@ -72,14 +64,10 @@ export async function signTransaction(
   const role = swig.findRoleByAuthority(authority);
 
   if (!role) {
-    throw new Error('Role not found for authority');
+    throw new Error("Role not found for authority");
   }
 
-  const signIx = signInstruction(
-    role,
-    authorityKeypair.publicKey,
-    instructions
-  );
+  const signIx = await signInstruction(role, authorityKeypair.publicKey, instructions);
 
   return sendTransaction(connection, signIx, authorityKeypair);
 }
@@ -93,7 +81,7 @@ export async function getRoleCapabilities(
   const role = swig.findRoleByAuthority(authority);
 
   if (!role) {
-    throw new Error('Role not found for authority');
+    throw new Error("Role not found for authority");
   }
 
   return {
@@ -122,9 +110,8 @@ export async function sendAndConfirm(
 
   await connection.confirmTransaction(
     { signature: sig, blockhash, lastValidBlockHeight },
-    'confirmed'
+    "confirmed"
   );
 
   return sig;
 }
-

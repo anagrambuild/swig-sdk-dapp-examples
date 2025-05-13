@@ -134,7 +134,7 @@ const Defi: React.FC<DefiProps> = ({ walletAddress, onLogout }) => {
       });
 
       // Create authority from the root keypair
-      const authority = new Ed25519Authority(rootKeypair.publicKey);
+      const authority = Ed25519Authority.fromPublicKey(rootKeypair.publicKey);
 
       // Let the SDK handle the validation and signing
       const signature = await signTransaction(
