@@ -1483,7 +1483,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@noble/curves@npm:^1.8.2":
+"@noble/curves@npm:^1.8.2, @noble/curves@npm:^1.9.0":
   version: 1.9.0
   resolution: "@noble/curves@npm:1.9.0"
   dependencies:
@@ -12517,6 +12517,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "swig-ts-sdk-dapp-examples@workspace:."
   dependencies:
+    "@noble/curves": "npm:^1.9.0"
     "@solana/spl-token": "npm:^0.4.13"
     "@swig-wallet/classic": "npm:0.2.0-beta.2"
     "@types/chrome": "npm:^0.0.309"

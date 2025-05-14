@@ -47,6 +47,7 @@ export function useSwigContext() {
 interface SwigProviderProps {
   children: ReactNode;
   walletAddress?: string;
+  walletType?: 'SOLANA' | 'EVM';
 }
 
 export function SwigProvider({ children, walletAddress }: SwigProviderProps) {
