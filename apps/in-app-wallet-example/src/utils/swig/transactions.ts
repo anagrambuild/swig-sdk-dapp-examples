@@ -67,6 +67,25 @@ export async function signTransaction(
     throw new Error("Role not found for authority");
   }
 
+  // Add detailed logging
+  console.log("Signing transaction with role:", {
+    id: role.id,
+    authorityType: role.authorityType,
+    canSpendSol: role.canSpendSol(),
+    canManageAuthority: role.canManageAuthority(),
+  });
+
+  // Log all roles for comparison
+  console.log(
+    "All roles in swig:",
+    swig.roles.map((r) => ({
+      id: r.id,
+      authorityType: r.authorityType,
+      canSpendSol: r.canSpendSol(),
+      canManageAuthority: r.canManageAuthority(),
+    }))
+  );
+
   const signIx = await signInstruction(role, authorityKeypair.publicKey, instructions);
 
   return sendTransaction(connection, signIx, authorityKeypair);
