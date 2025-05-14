@@ -68,6 +68,7 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
   const [isAddingRole, setIsAddingRole] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  //fetch swig address and roles
   const getSwigRoles = async () => {
     if (!swigAddress) return [];
     try {
@@ -117,13 +118,14 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
       localStorage.setItem("rootKeypair", JSON.stringify(rootKeypairSecret));
       console.log(`[setupSwigWallet] Swig wallet setup complete: ${newSwigAddress.toBase58()}`);
     } catch (error) {
-      console.error("❌ Failed to set up Swig wallet:", error);
+      console.error("Failed to set up Swig wallet:", error);
       setError("Failed to set up Swig wallet. Please try again.");
     } finally {
       setIsSettingUp(false);
     }
   };
 
+  //fetch roles
   const getRoles = async () => {
     try {
       setIsLoading(true);
@@ -138,6 +140,8 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
     }
   };
 
+
+//add role 
   const addRole = async (roleName: string, solAmount: string) => {
     if (!swigAddress || !solAmount || !roleName) return;
 
@@ -232,7 +236,7 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
 
       setRoles(newRoles);
     } catch (error) {
-      console.error("❌ Failed to add role:", error);
+      console.error("Failed to add role:", error);
       setError("Failed to add role. Please try again.");
     } finally {
       setIsAddingRole(false);
