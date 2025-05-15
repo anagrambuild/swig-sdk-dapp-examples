@@ -1,16 +1,5 @@
-import {
-  createContext,
-  useContext,
-  useState,
-  ReactNode,
-} from "react";
-import {
-  Connection,
-  PublicKey,
-  LAMPORTS_PER_SOL,
-  Transaction,
-  Keypair,
-} from "@solana/web3.js";
+import { createContext, useContext, useState, ReactNode } from "react";
+import { Connection, PublicKey, LAMPORTS_PER_SOL, Transaction, Keypair } from "@solana/web3.js";
 import {
   fetchSwig,
   Role,
@@ -140,8 +129,7 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
     }
   };
 
-
-//add role 
+  //add role
   const addRole = async (roleName: string, solAmount: string) => {
     if (!swigAddress || !solAmount || !roleName) return;
 
@@ -189,7 +177,10 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
           currentSlot: BigInt(await connection.getSlot("finalized")),
           signingFn: async (msg: Uint8Array): Promise<Uint8Array> => {
             const base64Msg = Buffer.from(msg).toString("base64");
-            const res = await para.signMessage({ walletId: walletAddress, messageBase64: base64Msg });
+            const res = await para.signMessage({
+              walletId: walletAddress,
+              messageBase64: base64Msg,
+            });
             if ("signature" in res) {
               console.log(`[addRole] Message signed via Para`);
               const sigBytes = Uint8Array.from(Buffer.from(res.signature, "base64"));
@@ -229,8 +220,8 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
           index === updatedRoles.length - 1
             ? roleName
             : index === 0
-              ? "Root Role"
-              : `Role ${index}`;
+            ? "Root Role"
+            : `Role ${index}`;
         return roleWithName;
       }) as RoleWithName[];
 
