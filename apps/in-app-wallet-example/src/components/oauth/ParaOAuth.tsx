@@ -16,14 +16,24 @@ const ParaOAuth = () => {
   const handleCheckIfAuthenticated = async () => {
     setIsLoading(true);
     setError('');
+  
+    // Set walletType to "SOLANA" by default if not set
+    let walletType = localStorage.getItem("walletType");
+    if (!walletType) {
+      walletType = "SOLANA";
+      localStorage.setItem("walletType", walletType);
+    }
+  
     try {
       const isAuthenticated = await para.isFullyLoggedIn();
       setIsConnected(isAuthenticated);
+  
       if (isAuthenticated) {
         const wallets = await para.getWallets();
         const selectedWallet = Object.values(wallets).find(
           (w: any) => w.type === walletType
         );
+  
         if (selectedWallet?.address) {
           console.log(`Using ${walletType} wallet:`, selectedWallet.address);
           setWallet(selectedWallet.address);
@@ -34,8 +44,9 @@ const ParaOAuth = () => {
     } catch (err: any) {
       setError(err.message || 'An error occurred during authentication');
     }
+  
     setIsLoading(false);
-  };
+  };  
 
   useEffect(() => {
     handleCheckIfAuthenticated();
@@ -44,6 +55,7 @@ const ParaOAuth = () => {
   const handleLogout = async () => {
     try {
       await para.logout();
+      localStorage.clear(); // Clears everything in localStorage
       await handleCheckIfAuthenticated();
     } catch (err: any) {
       setError(err.message || 'An error occurred during logout');
