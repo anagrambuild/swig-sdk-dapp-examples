@@ -5,6 +5,7 @@ import { useSwigContext } from "../../../context/SwigContext";
 import { AddRoleModal } from "./AddRoleModal";
 import { PlusIcon } from "@heroicons/react/24/outline";
 import SwigAdd from "./SwigAdd";
+import { formatSolLimit } from "../../../utils/swig/helpers";
 
 interface SwigDashboardProps {
   walletAddress?: string;
@@ -20,21 +21,8 @@ const SwigDashboard: React.FC<SwigDashboardProps> = () => {
   const calculateTotalSpendingLimits = () => {
     return roles.reduce((total, role) => {
       if (role?.canSpendSol?.()) {
-        let left = BigInt(0);
-        let right = BigInt(100 * LAMPORTS_PER_SOL);
-        let maxLamports = BigInt(0);
-
-        while (left <= right) {
-          const mid = (left + right) / BigInt(2);
-          if (role.canSpendSol(mid)) {
-            maxLamports = mid;
-            left = mid + BigInt(1);
-          } else {
-            right = mid - BigInt(1);
-          }
-        }
-
-        return total + Number(maxLamports) / LAMPORTS_PER_SOL;
+        const limit = role.solSpendLimit();
+        return total + (limit === null ? 0 : Number(limit) / LAMPORTS_PER_SOL);
       }
       return total;
     }, 0);
@@ -94,24 +82,6 @@ const SwigDashboard: React.FC<SwigDashboardProps> = () => {
           <div className="mt-3">
             <p className="text-sm font-medium mb-1">Role Permissions:</p>
             {roles.map((role, index) => {
-              let limit = 0;
-              if (role?.canSpendSol?.()) {
-                let left = BigInt(0);
-                let right = BigInt(100 * LAMPORTS_PER_SOL);
-                let maxLamports = BigInt(0);
-
-                while (left <= right) {
-                  const mid = (left + right) / BigInt(2);
-                  if (role.canSpendSol(mid)) {
-                    maxLamports = mid;
-                    left = mid + BigInt(1);
-                  } else {
-                    right = mid - BigInt(1);
-                  }
-                }
-
-                limit = Number(maxLamports) / LAMPORTS_PER_SOL;
-              }
               return (
                 <div key={index} className="mb-3 last:mb-0">
                   <div className="flex justify-between items-center text-sm font-medium">
@@ -129,7 +99,9 @@ const SwigDashboard: React.FC<SwigDashboardProps> = () => {
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">SOL Spending:</span>
                       <span className={role?.canSpendSol?.() ? "text-blue-600" : "text-gray-500"}>
-                        {role?.canSpendSol?.() ? `${limit.toFixed(4)} SOL` : "No permission"}
+                        {role?.canSpendSol?.()
+                          ? formatSolLimit(role.solSpendLimit())
+                          : "No permission"}
                       </span>
                     </div>
                   </div>

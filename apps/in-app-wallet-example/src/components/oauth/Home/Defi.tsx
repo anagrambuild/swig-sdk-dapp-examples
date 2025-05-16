@@ -41,22 +41,8 @@ const Defi: React.FC<DefiProps> = ({ walletAddress, onLogout, setView }) => {
           // Get the selected role's SOL limit
           const role = roles[parseInt(selectedRole)];
           if (role?.canSpendSol?.()) {
-            let left = BigInt(0);
-            let right = BigInt(100 * LAMPORTS_PER_SOL);
-            let maxLamports = BigInt(0);
-
-            while (left <= right) {
-              const mid = (left + right) / BigInt(2);
-              if (role.canSpendSol(mid)) {
-                maxLamports = mid;
-                left = mid + BigInt(1);
-              } else {
-                right = mid - BigInt(1);
-              }
-            }
-
-            const maxSolAmount = Number(maxLamports) / LAMPORTS_PER_SOL;
-            setRoleLimit(maxSolAmount);
+            const limit = role.solSpendLimit();
+            setRoleLimit(limit === null ? null : Number(limit) / LAMPORTS_PER_SOL);
           } else {
             setRoleLimit(null);
           }
@@ -104,13 +90,15 @@ const Defi: React.FC<DefiProps> = ({ walletAddress, onLogout, setView }) => {
     try {
       const connection = new Connection("http://localhost:8899", "confirmed");
 
-      // Get the root keypair from localStorage
-      const rootKeypairSecret = localStorage.getItem("rootKeypair");
-      if (!rootKeypairSecret) {
-        setClientError("Root keypair not found");
-        return; // Keep this return as it's a critical requirement
+      // Get the selected role's keypair from localStorage
+      const roleKeypairSecret = localStorage.getItem(`roleKeypair_${selectedRole}`);
+      if (!roleKeypairSecret) {
+        setClientError(
+          `Role keypair not found for role ${selectedRole}. This role may have been created before keypair storage was implemented. Please recreate the role.`
+        );
+        return;
       }
-      const rootKeypair = Keypair.fromSecretKey(new Uint8Array(JSON.parse(rootKeypairSecret)));
+      const roleKeypair = Keypair.fromSecretKey(new Uint8Array(JSON.parse(roleKeypairSecret)));
 
       // Create the transfer instruction
       const transferIx = SystemProgram.transfer({
@@ -119,24 +107,31 @@ const Defi: React.FC<DefiProps> = ({ walletAddress, onLogout, setView }) => {
         lamports: amountInLamports,
       });
 
-      // Create authority from the root keypair
-      const authority = Ed25519Authority.fromPublicKey(rootKeypair.publicKey);
+      // Create authority from the role keypair
+      const authority = Ed25519Authority.fromPublicKey(roleKeypair.publicKey);
 
       // Debug logs
       const swig = await fetchSwig(connection, new PublicKey(swigAddress));
       const foundRole = swig.findRoleByAuthority(authority);
-      console.log("Found role for root authority:", foundRole);
+      console.log("Found role for authority:", foundRole);
       console.log("Role can spend SOL:", foundRole?.canSpendSol?.());
       console.log("Role can manage authority:", foundRole?.canManageAuthority?.());
       console.log("All roles:", swig.roles);
 
       // Log role details
-      console.log("Root role details:", {
+      console.log("Role details:", {
         id: foundRole?.id,
         authorityType: foundRole?.authorityType,
         canSpendSol: foundRole?.canSpendSol?.(),
         canManageAuthority: foundRole?.canManageAuthority?.(),
       });
+
+      if (!foundRole) {
+        setClientError(
+          "Role not found for the selected authority. This may indicate a mismatch between the stored keypair and the role's authority."
+        );
+        return;
+      }
 
       // Let the SDK handle the validation and signing
       try {
@@ -144,7 +139,7 @@ const Defi: React.FC<DefiProps> = ({ walletAddress, onLogout, setView }) => {
           connection,
           new PublicKey(swigAddress),
           authority,
-          rootKeypair,
+          roleKeypair,
           [transferIx]
         );
         console.log("Transaction signed successfully with signature:", signature);
@@ -284,7 +279,7 @@ const Defi: React.FC<DefiProps> = ({ walletAddress, onLogout, setView }) => {
                   <div className="p-3 bg-red-50 border border-red-200 rounded-md">
                     <p className="text-sm font-medium text-red-800">Transaction Error:</p>
                     <p className="text-sm text-red-600">{sdkError}</p>
-                    {txSignature && (
+                    {txSignature && !isTransferring && (
                       <a
                         href={getExplorerUrl(txSignature)}
                         target="_blank"
@@ -298,7 +293,7 @@ const Defi: React.FC<DefiProps> = ({ walletAddress, onLogout, setView }) => {
                 )}
 
                 {/* Success with Transaction Link */}
-                {txSignature && !sdkError && (
+                {txSignature && !sdkError && !isTransferring && (
                   <div className="p-3 bg-green-50 border border-green-200 rounded-md">
                     <p className="text-sm font-medium text-green-800">Transaction successful!</p>
                     <a
