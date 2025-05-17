@@ -127,6 +127,7 @@ const DefiSecpPara: React.FC<DefiProps> = ({ walletAddress }) => {
   
       const pubKeyBytes = hexToBytes(publicKeyHex.startsWith('0x') ? publicKeyHex.slice(2) : publicKeyHex);
       const authority = Secp256k1Authority.fromPublicKeyBytes(pubKeyBytes);
+      console.log("Authority", role.authority)
   
       // Prepare transfer instruction
       const transferIx = SystemProgram.transfer({
@@ -149,11 +150,16 @@ const DefiSecpPara: React.FC<DefiProps> = ({ walletAddress }) => {
               walletId: wallet.id,
               messageBase64: base64Msg
             });
+
+            console.log("wallet id", wallet.id)
           
             if ("signature" in res) {
               // decode based on what encoding you used
               let sigBytes = Uint8Array.from(Buffer.from(res.signature, "hex"));
-          
+              console.log("res sig", res.signature)
+              console.log("sigBytes", sigBytes)
+              let _sigBytes = hexToBytes(res.signature)
+              console.log("sigBytes hex", _sigBytes)
               if (sigBytes.length !== 65) {
                 throw new Error(`EVM signature must be 65 bytes (got ${sigBytes.length})`);
               }
@@ -167,7 +173,7 @@ const DefiSecpPara: React.FC<DefiProps> = ({ walletAddress }) => {
       };
   
       // Sign with Swig + Secp256k1 via Para
-      const signedIx = await signInstruction(role, new PublicKey(swigAddress), [transferIx], instOptions);
+      const signedIx = await signInstruction(role, feePayer.publicKey, [transferIx], instOptions);
   
       const tx = new Transaction().add(signedIx);
       tx.feePayer = feePayer.publicKey;
