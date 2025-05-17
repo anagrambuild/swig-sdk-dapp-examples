@@ -168,10 +168,10 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
       } else {
         const currentWallet = await getEvmWalletPublicKey();
         if (!currentWallet) throw new Error("EVM public key not found");
-        //const hexPubkey = currentWallet.startsWith("0x") ? currentWallet.slice(2) : currentWallet;
-        //const currentWalletBytes = hexToBytes(hexPubkey);
-        //console.log(`[addRole] Using EVM wallet public key: 0x${hexPubkey}`);
-        const newAuthority = Secp256k1Authority.fromPublicKeyString(currentWallet);
+        const hexPubkey = currentWallet.startsWith("0x") ? currentWallet.slice(2) : currentWallet;
+        const currentWalletBytes = hexToBytes(hexPubkey);
+        console.log(`[addRole] Using EVM wallet public key: 0x${hexPubkey}`);
+        const newAuthority = Secp256k1Authority.fromPublicKeyBytes(currentWalletBytes);
         console.log(`[addRole] Generated new Secp256k1 keypair: ${newAuthority.toString()}`);
 
         const instOptions: InstructionDataOptions = {
