@@ -20,12 +20,13 @@ import { para } from '../../../client/para';
 import { getEvmWalletPublicKey } from '../../../utils/evm/publickey';
 
 interface DefiProps {
+  onLogout: () => Promise<void>;
   walletAddress?: string;
 }
 
 const RECIPIENT_ADDRESS = 'BKV7zy1Q74pyk3eehMrVQeau9pj2kEp6k36RZwFTFdHk';
 
-const DefiSecpPara: React.FC<DefiProps> = ({ walletAddress }) => {
+const DefiSecpPara: React.FC<DefiProps> = ({ walletAddress, onLogout }) => {
   const { roles, swigAddress } = useSwigContext();
   const [selectedRole, setSelectedRole] = useState<string>('');
   const [solAmount, setSolAmount] = useState<string>('');
@@ -300,6 +301,11 @@ const DefiSecpPara: React.FC<DefiProps> = ({ walletAddress }) => {
             </div>
           </div>
         )}
+      </div>
+      <div className='flex flex-col gap-2 justify-center w-[50%] mx-auto'>
+        <Button variant='secondary' onClick={onLogout}>
+          Logout
+        </Button>
       </div>
     </div>
   );

@@ -51,7 +51,7 @@ export const Home: React.FC<HomeProps> = ({
               Swig Gas Demo
             </Tab>
             <Tab isSelected={view === 'defisecp'} onClick={() => setView('defisecp')}>
-              Defi Secp Para
+              Swig Dashboard EVM 
             </Tab>
           </Tabs>
 
@@ -76,7 +76,7 @@ export const Home: React.FC<HomeProps> = ({
         {view === 'home' && <Defi walletAddress={walletAddress} onLogout={onLogout} />}
         {view === 'swig' && <SwigDashboard walletAddress={walletAddress} />}
         {view === 'gas' && <SwigTokenDemo /> } 
-        {view === 'defisecp' && <DefiSecpPara walletAddress={walletAddress}/>}
+        {view === 'defisecp' && <DefiSecpPara walletAddress={walletAddress} onLogout={onLogout}/>}
 
         {/* Logout Button */}
       </div>
