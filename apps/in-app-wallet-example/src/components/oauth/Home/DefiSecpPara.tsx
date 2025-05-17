@@ -151,7 +151,7 @@ const DefiSecpPara: React.FC<DefiProps> = ({ walletAddress }) => {
               messageBase64: base64Msg
             });
 
-            console.log("wallet id", wallet.id)
+            //console.log("wallet id", wallet.id)
           
             if ("signature" in res) {
               // decode based on what encoding you used

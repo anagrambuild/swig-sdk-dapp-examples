@@ -168,18 +168,20 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
       } else {
         const currentWallet = await getEvmWalletPublicKey();
         if (!currentWallet) throw new Error("EVM public key not found");
-        const hexPubkey = currentWallet.startsWith("0x") ? currentWallet.slice(2) : currentWallet;
-        const currentWalletBytes = hexToBytes(hexPubkey);
-        console.log(`[addRole] Using EVM wallet public key: 0x${hexPubkey}`);
-        const newAuthority = Secp256k1Authority.fromPublicKeyBytes(currentWalletBytes);
+        //const hexPubkey = currentWallet.startsWith("0x") ? currentWallet.slice(2) : currentWallet;
+        //const currentWalletBytes = hexToBytes(hexPubkey);
+        //console.log(`[addRole] Using EVM wallet public key: 0x${hexPubkey}`);
+        const newAuthority = Secp256k1Authority.fromPublicKeyString(currentWallet);
         console.log(`[addRole] Generated new Secp256k1 keypair: ${newAuthority.toString()}`);
 
         const instOptions: InstructionDataOptions = {
           currentSlot: BigInt(await connection.getSlot("finalized")),
           signingFn: async (msg: Uint8Array): Promise<Uint8Array> => {
             const base64Msg = Buffer.from(msg).toString("base64");
+            const wallet = await para.findWalletByAddress(walletAddress);
+            if (!wallet) throw new Error("Para wallet not found for this address");
             const res = await para.signMessage({
-              walletId: walletAddress,
+              walletId: wallet.id,
               messageBase64: base64Msg,
             });
             if ("signature" in res) {
