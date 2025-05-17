@@ -172,6 +172,7 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
         const currentWalletBytes = hexToBytes(hexPubkey);
         console.log(`[addRole] Using EVM wallet public key: 0x${hexPubkey}`);
         const newAuthority = Secp256k1Authority.fromPublicKeyBytes(currentWalletBytes);
+        console.log(`[addRole] Generated new Secp256k1 keypair: ${newAuthority.toString()}`);
 
         const instOptions: InstructionDataOptions = {
           currentSlot: BigInt(await connection.getSlot("finalized")),
