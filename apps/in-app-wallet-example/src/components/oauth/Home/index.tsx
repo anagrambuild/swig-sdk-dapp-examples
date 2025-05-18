@@ -19,15 +19,24 @@ export const Home: React.FC<HomeProps> = ({
   setWalletType,
   onLogout,
 }) => {
-  const [view, setView] = useState<'home' | 'swig' | 'gas' | 'defisecp'>('home');
+  const [view, setView] = useState<'home' | 'swig' | 'gas' | 'home_defisecp'>('home');
 
-  // Load wallet type from localStorage on mount (optional safety in case parent didn’t already do it)
+  // Load wallet type from localStorage on mount
   useEffect(() => {
     const storedType = localStorage.getItem('walletType');
     if (storedType === 'SOLANA' || storedType === 'EVM') {
       setWalletType(storedType);
     }
   }, [setWalletType]);
+
+  // Optionally reset view on wallet type change
+  useEffect(() => {
+    if (walletType === 'EVM') {
+      setView('home_defisecp');
+    } else {
+      setView('home');
+    }
+  }, [walletType]);
 
   // Save to localStorage on user selection
   const handleWalletTypeChange = (type: 'SOLANA' | 'EVM') => {
@@ -41,18 +50,28 @@ export const Home: React.FC<HomeProps> = ({
         {/* Tabs + Wallet Type Selector */}
         <div className='flex flex-wrap justify-between items-center px-4'>
           <Tabs>
-            <Tab isSelected={view === 'home'} onClick={() => setView('home')}>
-              Home
-            </Tab>
-            <Tab isSelected={view === 'swig'} onClick={() => setView('swig')}>
-              Swig Dashboard
-            </Tab>
-            <Tab isSelected={view === 'gas'} onClick={() => setView('gas')}>
-              Swig Gas Demo
-            </Tab>
-            <Tab isSelected={view === 'defisecp'} onClick={() => setView('defisecp')}>
-              Swig Dashboard EVM 
-            </Tab>
+            {walletType === 'EVM' ? (
+              <>
+                <Tab isSelected={view === 'home_defisecp'} onClick={() => setView('home_defisecp')}>
+                  Home EVM
+                </Tab>
+                <Tab isSelected={view === 'swig'} onClick={() => setView('swig')}>
+                  Swig Dashboard
+                </Tab>
+              </>
+            ) : (
+              <>
+                <Tab isSelected={view === 'home'} onClick={() => setView('home')}>
+                  Home
+                </Tab>
+                <Tab isSelected={view === 'swig'} onClick={() => setView('swig')}>
+                  Swig Dashboard
+                </Tab>
+                <Tab isSelected={view === 'gas'} onClick={() => setView('gas')}>
+                  Swig Gas Demo
+                </Tab>
+              </>
+            )}
           </Tabs>
 
           {/* Wallet Type Dropdown */}
@@ -73,12 +92,18 @@ export const Home: React.FC<HomeProps> = ({
         </div>
 
         {/* View content */}
-        {view === 'home' && <Defi walletAddress={walletAddress} onLogout={onLogout} />}
-        {view === 'swig' && <SwigDashboard walletAddress={walletAddress} />}
-        {view === 'gas' && <SwigTokenDemo /> } 
-        {view === 'defisecp' && <DefiSecpPara walletAddress={walletAddress} onLogout={onLogout}/>}
-
-        {/* Logout Button */}
+        {walletType === 'EVM' ? (
+          <>
+            {view === 'home_defisecp' && <DefiSecpPara walletAddress={walletAddress} onLogout={onLogout} />}
+            {view === 'swig' && <SwigDashboard walletAddress={walletAddress} />}
+          </>
+        ) : (
+          <>
+            {view === 'home' && <Defi walletAddress={walletAddress} onLogout={onLogout} />}
+            {view === 'swig' && <SwigDashboard walletAddress={walletAddress} />}
+            {view === 'gas' && <SwigTokenDemo />}
+          </>
+        )}
       </div>
     </SwigProvider>
   );

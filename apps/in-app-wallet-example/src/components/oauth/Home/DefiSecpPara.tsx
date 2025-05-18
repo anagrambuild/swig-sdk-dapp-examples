@@ -18,6 +18,7 @@ import {
 import { hexToBytes } from '@noble/curves/abstract/utils';
 import { para } from '../../../client/para';
 import { getEvmWalletPublicKey } from '../../../utils/evm/publickey';
+import SwigAdd from './SwigAdd';
 
 interface DefiProps {
   onLogout: () => Promise<void>;
@@ -203,6 +204,9 @@ const DefiSecpPara: React.FC<DefiProps> = ({ walletAddress, onLogout }) => {
     setTxSignature(null);
   };
 
+  if (!swigAddress) {
+    return <SwigAdd />;
+  }
   return (
     <div className='flex flex-col gap-2 justify-between flex-grow'>
       <div className='flex flex-col gap-4 justify-center'>
