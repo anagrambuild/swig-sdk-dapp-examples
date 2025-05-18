@@ -11,6 +11,7 @@ import {
 } from "@swig-wallet/classic";
 import { para } from "../client/para";
 import { createSwigAccount } from "../utils/swig";
+import { createSwigAccountSecpPara } from "../utils/swig/createSwigAccountSecp";
 import { hexToBytes } from "@noble/curves/abstract/utils";
 import { getEvmWalletPublicKey } from "../utils/evm/publickey";
 
@@ -86,28 +87,50 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
 
   const setupSwigWallet = async () => {
     if (!walletAddress) return;
-
     try {
-      console.log("[setupSwigWallet] Starting Swig wallet setup...");
+      console.log("[setupSwigWallet] Starting Swig wallet setup…");
       setIsSettingUp(true);
       setError(null);
-
       const connection = new Connection("http://localhost:8899", "confirmed");
-      const { swigAddress: newSwigAddress, rootKeypairSecret } = await createSwigAccount(
-        connection,
-        permissionType
+      let swigPdaBase58: string;
+      if (walletType === "EVM") {
+        /* Para-managed secp256k1 root */
+        const {
+          swigAddress,
+          swigAddressSecret,        // number[]
+        } = await createSwigAccountSecpPara(
+          connection,
+          walletAddress,
+          permissionType,
+        );
+  
+        swigPdaBase58 = swigAddress;
+  
+        /* store JSON array under the familiar key */
+        localStorage.setItem("rootKeypair", JSON.stringify(swigAddressSecret));
+      } else {
+        /* Ed25519 root (Solana wallet) */
+        const {
+          swigAddress,
+          rootKeypairSecret,
+        } = await createSwigAccount(connection, permissionType);
+  
+        swigPdaBase58 = swigAddress.toBase58();
+  
+        localStorage.setItem("rootKeypair", JSON.stringify(rootKeypairSecret));
+      }
+      console.log(`[setupSwigWallet] Airdropping 2 SOL to ${swigPdaBase58}…`);
+      const airdropSig = await connection.requestAirdrop(
+        new PublicKey(swigPdaBase58),
+        2 * LAMPORTS_PER_SOL,
       );
-
-      console.log(`[setupSwigWallet] Requesting airdrop to ${newSwigAddress.toBase58()}...`);
-      const airdropSig = await connection.requestAirdrop(newSwigAddress, 2 * LAMPORTS_PER_SOL);
       await connection.confirmTransaction(airdropSig, "confirmed");
-      console.log(`[setupSwigWallet] Airdrop confirmed. TX: ${airdropSig}`);
-
-      setSwigAddress(newSwigAddress.toBase58());
-      localStorage.setItem("rootKeypair", JSON.stringify(rootKeypairSecret));
-      console.log(`[setupSwigWallet] Swig wallet setup complete: ${newSwigAddress.toBase58()}`);
-    } catch (error) {
-      console.error("Failed to set up Swig wallet:", error);
+      console.log("[setupSwigWallet] Airdrop confirmed:", airdropSig);
+  
+      setSwigAddress(swigPdaBase58);
+      console.log("[setupSwigWallet] Swig wallet ready at", swigPdaBase58);
+    } catch (err) {
+      console.error("Failed to set up Swig wallet:", err);
       setError("Failed to set up Swig wallet. Please try again.");
     } finally {
       setIsSettingUp(false);
@@ -169,30 +192,42 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
         const currentWallet = await getEvmWalletPublicKey();
         if (!currentWallet) throw new Error("EVM public key not found");
         const hexPubkey = currentWallet.startsWith("0x") ? currentWallet.slice(2) : currentWallet;
-        const currentWalletBytes = hexToBytes(hexPubkey);
-        console.log(`[addRole] Using EVM wallet public key: 0x${hexPubkey}`);
-        const newAuthority = Secp256k1Authority.fromPublicKeyBytes(currentWalletBytes);
+        const newAuthority = Secp256k1Authority.fromPublicKeyString(hexPubkey);
         console.log(`[addRole] Generated new Secp256k1 keypair: ${newAuthority.toString()}`);
 
         const instOptions: InstructionDataOptions = {
-          currentSlot: BigInt(await connection.getSlot("finalized")),
+          currentSlot: BigInt(await connection.getSlot('finalized')),
           signingFn: async (msg: Uint8Array): Promise<Uint8Array> => {
-            const base64Msg = Buffer.from(msg).toString("base64");
-            const wallet = await para.findWalletByAddress(walletAddress);
-            if (!wallet) throw new Error("Para wallet not found for this address");
-            const res = await para.signMessage({
-              walletId: wallet.id,
-              messageBase64: base64Msg,
-            });
-            if ("signature" in res) {
-              console.log(`[addRole] Message signed via Para`);
-              const sigBytes = Uint8Array.from(Buffer.from(res.signature, "base64"));
-              if (sigBytes.length !== 64) throw new Error("EVM signature must be 64 bytes");
-              return sigBytes;
-            } else {
-              throw new Error("Signature denied or not returned");
-            }
-          },
+              if (!walletAddress) throw new Error("No wallet address provided");
+            
+              const base64Msg = Buffer.from(msg).toString("base64");
+              const wallet = await para.findWalletByAddress(walletAddress);
+              if (!wallet) throw new Error("Para wallet not found for this address");
+            
+              const res = await para.signMessage({
+                walletId: wallet.id,
+                messageBase64: base64Msg
+              });
+  
+              //console.log("wallet id", wallet.id)
+            
+              if ("signature" in res) {
+                // decode based on what encoding you used
+                let sigBytes = Uint8Array.from(Buffer.from(res.signature, "hex"));
+                console.log("res sig", res.signature)
+                console.log("sigBytes", sigBytes)
+                let _sigBytes = hexToBytes(res.signature)
+                console.log("sigBytes hex", _sigBytes)
+                if (sigBytes.length !== 65) {
+                  throw new Error(`EVM signature must be 65 bytes (got ${sigBytes.length})`);
+                }
+            
+                console.log("[transfer] Got 65-byte signature via Para");
+                return sigBytes;
+              } else {
+                throw new Error("Signature denied or not returned from Para");
+              }
+            }          
         };
 
         addAuthorityIx = await addAuthorityInstruction(
