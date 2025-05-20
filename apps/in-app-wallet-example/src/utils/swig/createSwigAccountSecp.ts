@@ -28,7 +28,7 @@ import {
     walletAddress: string,
     permissionType: "locked" | "permissive" = "locked",
   ): Promise<SecpParaSwigResult> {
-    /* --------------------------------------------------------------------- 1 */
+   // fetch the wallet from Para and get the public key then create the swig account
     const wallet = await para.findWalletByAddress(walletAddress);
     if (!wallet) throw new Error(`Para wallet not found for ${walletAddress}`);
   
@@ -39,13 +39,13 @@ import {
       hexToBytes(publicKeyHex.replace(/^0x/, "")),
     );
   
-    /* --------------------------------------------------------------------- 2 */
+    // Generate a random ID for the Swig account
     const id = new Uint8Array(32);
     crypto.getRandomValues(id);
     const payer = Keypair.generate();
     const [swigAddress] = findSwigPda(id);
   
-    /* --------------------------------------------------------------------- 3 */
+    // Request airdrop for the payer
     const airdropSig = await connection.requestAirdrop(
       payer.publicKey,
       2 * LAMPORTS_PER_SOL,
@@ -56,14 +56,14 @@ import {
       "confirmed",
     );
   
-    /* --------------------------------------------------------------------- 4 */
+    // roles locked or permissive
     const rootActions = Actions.set();
     if (permissionType === "locked") {
       rootActions.manageAuthority();
     } else {
       rootActions.all();
     }
-    /* --------------------------------------------------------------------- 5 */
+    // Create the Swig account
     const createIx = Swig.create({
       authority: rootAuthority,
       id,
