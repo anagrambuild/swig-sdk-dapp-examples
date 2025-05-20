@@ -6,7 +6,7 @@ import { Ed25519Authority } from "@swig-wallet/classic";
 import { signTransaction } from "../../../utils/swig/transactions";
 
 interface BundledTransactionsProps {
-  setView: (view: "home" | "swig" | "gas" | "bundled") => void;
+  setView: (view: "defi_ed25519" | "swig" | "gas" | "bundled") => void;
 }
 
 // Default recipient addresses (can be removed in production)
