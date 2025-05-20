@@ -112,18 +112,6 @@ const Defi: React.FC<DefiProps> = ({ walletAddress, setView }) => {
       // Debug logs
       const swig = await fetchSwig(connection, new PublicKey(swigAddress));
       const foundRole = swig.findRoleByAuthority(authority);
-      console.log("Found role for authority:", foundRole);
-      console.log("Role can spend SOL:", foundRole?.canSpendSol?.());
-      console.log("Role can manage authority:", foundRole?.canManageAuthority?.());
-      console.log("All roles:", swig.roles);
-
-      // Log role details
-      console.log("Role details:", {
-        id: foundRole?.id,
-        authorityType: foundRole?.authorityType,
-        canSpendSol: foundRole?.canSpendSol?.(),
-        canManageAuthority: foundRole?.canManageAuthority?.(),
-      });
 
       if (!foundRole) {
         setClientError(
