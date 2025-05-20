@@ -1,6 +1,6 @@
 import React from "react";
 import { Button, Tab, Tabs } from "@swig/ui";
-import Defi from "./Defi";
+import DefiEd25519 from "./DefiEd25519";
 import SwigDashboard from "./SwigDashboard";
 import SwigTokenDemo from "./SwigGasDemo";
 import { useSwigContext } from "../../../context/SwigContext";
@@ -101,7 +101,9 @@ export const HomeContent: React.FC<HomeContentProps> = ({
           </>
         ) : (
           <>
-            {view === "defi_ed25519" && <Defi walletAddress={walletAddress!} setView={setView} />}
+            {view === "defi_ed25519" && (
+              <DefiEd25519 walletAddress={walletAddress!} setView={setView} />
+            )}
             {view === "swig" && <SwigDashboard walletAddress={walletAddress} />}
             {view === "gas" && <SwigTokenDemo />}
             {view === "bundled" && <BundledTransactions setView={setView} />}
