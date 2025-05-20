@@ -66,22 +66,8 @@ const BundledTransactions: React.FC<BundledTransactionsProps> = ({ setView }) =>
           // Get the selected role's SOL limit
           const role = roles[parseInt(selectedRole)];
           if (role?.canSpendSol?.()) {
-            let left = BigInt(0);
-            let right = BigInt(100 * LAMPORTS_PER_SOL);
-            let maxLamports = BigInt(0);
-
-            while (left <= right) {
-              const mid = (left + right) / BigInt(2);
-              if (role.canSpendSol(mid)) {
-                maxLamports = mid;
-                left = mid + BigInt(1);
-              } else {
-                right = mid - BigInt(1);
-              }
-            }
-
-            const maxSolAmount = Number(maxLamports) / LAMPORTS_PER_SOL;
-            setRoleLimit(maxSolAmount);
+            const limit = role.solSpendLimit();
+            setRoleLimit(limit === null ? null : Number(limit) / LAMPORTS_PER_SOL);
           } else {
             setRoleLimit(null);
           }
