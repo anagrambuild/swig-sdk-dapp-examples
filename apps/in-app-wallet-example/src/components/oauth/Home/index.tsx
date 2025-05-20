@@ -5,6 +5,7 @@ import SwigDashboard from './SwigDashboard';
 import SwigTokenDemo from './SwigGasDemo';
 import { SwigProvider } from '../../../context/SwigContext';
 import DefiSecpPara from './DefiSecpPara';
+import BundledTransactions from "./BundledTransactions";
 
 interface HomeProps {
   walletAddress: string;
@@ -19,7 +20,7 @@ export const Home: React.FC<HomeProps> = ({
   setWalletType,
   onLogout,
 }) => {
-  const [view, setView] = useState<'home' | 'swig' | 'gas' | 'home_defisecp'>('home');
+  const [view, setView] = useState<'home' | 'swig' | 'gas' | 'home_defisecp'|'bundled'>('home');
 
   // Load wallet type from localStorage on mount
   useEffect(() => {
@@ -70,6 +71,9 @@ export const Home: React.FC<HomeProps> = ({
                 <Tab isSelected={view === 'gas'} onClick={() => setView('gas')}>
                   Swig Gas Demo
                 </Tab>
+                <Tab isSelected={view === 'bundled'} onClick={() => setView('bundled')}>
+                  Bundled Transactions
+                </Tab>
               </>
             )}
           </Tabs>
@@ -99,9 +103,10 @@ export const Home: React.FC<HomeProps> = ({
           </>
         ) : (
           <>
-            {view === 'home' && <Defi walletAddress={walletAddress} onLogout={onLogout} />}
+            <Defi walletAddress={walletAddress!} onLogout={onLogout} setView={setView} />
             {view === 'swig' && <SwigDashboard walletAddress={walletAddress} />}
             {view === 'gas' && <SwigTokenDemo />}
+            {view === "bundled" && <BundledTransactions setView={setView} />}
           </>
         )}
       </div>

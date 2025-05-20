@@ -9,7 +9,7 @@ export async function createSwigAccount(
     // Generate a random ID for the Swig account
     const id = new Uint8Array(32);
     crypto.getRandomValues(id);
-
+    console.log("permissionType", permissionType);
     // Generate a keypair for the root authority
     const rootKeypair = Keypair.generate();
 
