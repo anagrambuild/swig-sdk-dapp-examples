@@ -47,31 +47,21 @@ const DefiSecpPara: React.FC<DefiProps> = ({ walletAddress, onLogout }) => {
     const fetchBalanceAndLimit = async () => {
       if (swigAddress && selectedRole) {
         try {
-          const connection = new Connection('http://localhost:8899', 'confirmed');
+          const connection = new Connection("http://localhost:8899", "confirmed");
           const balanceInLamports = await connection.getBalance(new PublicKey(swigAddress));
           const balanceInSol = balanceInLamports / LAMPORTS_PER_SOL;
           setWalletBalance(balanceInSol);
 
+          // Get the selected role's SOL limit
           const role = roles[parseInt(selectedRole)];
           if (role?.canSpendSol?.()) {
-            let left = BigInt(0);
-            let right = BigInt(100 * LAMPORTS_PER_SOL);
-            let maxLamports = BigInt(0);
-            while (left <= right) {
-              const mid = (left + right) / BigInt(2);
-              if (role.canSpendSol(mid)) {
-                maxLamports = mid;
-                left = mid + BigInt(1);
-              } else {
-                right = mid - BigInt(1);
-              }
-            }
-            setRoleLimit(Number(maxLamports) / LAMPORTS_PER_SOL);
+            const limit = role.solSpendLimit();
+            setRoleLimit(limit === null ? null : Number(limit) / LAMPORTS_PER_SOL);
           } else {
             setRoleLimit(null);
           }
-        } catch (err) {
-          console.error('Error fetching balance:', err);
+        } catch (error) {
+          console.error("Error fetching balance:", error);
         }
       } else {
         setWalletBalance(null);
@@ -81,7 +71,7 @@ const DefiSecpPara: React.FC<DefiProps> = ({ walletAddress, onLogout }) => {
 
     fetchBalanceAndLimit();
   }, [swigAddress, selectedRole, roles, isTransferring]);
-
+  
   const handleTransfer = async () => {
     setClientError(null);
     setSdkError(null);
