@@ -8,33 +8,54 @@ const ParaOAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [wallet, setWallet] = useState<string>('');
+  const [walletType, setWalletType] = useState<'SOLANA' | 'EVM'>(
+    (localStorage.getItem('walletType') as 'SOLANA' | 'EVM') || 'SOLANA'
+  );
   const [error, setError] = useState<string>('');
 
   const handleCheckIfAuthenticated = async () => {
     setIsLoading(true);
     setError('');
+  
+    // Set walletType to "SOLANA" by default if not set
+    let walletType = localStorage.getItem("walletType");
+    if (!walletType) {
+      walletType = "SOLANA";
+      localStorage.setItem("walletType", walletType);
+    }
+  
     try {
       const isAuthenticated = await para.isFullyLoggedIn();
       setIsConnected(isAuthenticated);
+  
       if (isAuthenticated) {
-        const wallets = Object.values(await para.getWallets());
-        if (wallets?.length) {
-          setWallet(wallets[0].address || 'unknown');
+        const wallets = await para.getWallets();
+        const selectedWallet = Object.values(wallets).find(
+          (w: any) => w.type === walletType
+        );
+  
+        if (selectedWallet?.address) {
+          console.log(`Using ${walletType} wallet:`, selectedWallet.address);
+          setWallet(selectedWallet.address);
+        } else {
+          setError(`No ${walletType} wallet found`);
         }
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred during authentication');
     }
+  
     setIsLoading(false);
-  };
+  };  
 
   useEffect(() => {
     handleCheckIfAuthenticated();
-  }, []);
+  }, [walletType]);
 
   const handleLogout = async () => {
     try {
       await para.logout();
+      localStorage.clear(); // Clears everything in localStorage
       await handleCheckIfAuthenticated();
     } catch (err: any) {
       setError(err.message || 'An error occurred during logout');
@@ -126,7 +147,12 @@ const ParaOAuth = () => {
   return (
     <main className='flex flex-col items-center min-h-screen gap-2 p-4'>
       {isConnected ? (
-        <Home walletAddress={wallet} onLogout={handleLogout} />
+        <Home
+          walletAddress={wallet}
+          walletType={walletType}
+          setWalletType={setWalletType}
+          onLogout={handleLogout}
+        />
       ) : (
         <>
           <h1 className='text-2xl font-bold'>
