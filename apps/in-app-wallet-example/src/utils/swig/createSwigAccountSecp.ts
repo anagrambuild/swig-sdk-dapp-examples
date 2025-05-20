@@ -27,7 +27,6 @@ import {
     connection: Connection,
     walletAddress: string,
     permissionType: "locked" | "permissive" = "locked",
-    fundPda = true,
   ): Promise<SecpParaSwigResult> {
     /* --------------------------------------------------------------------- 1 */
     const wallet = await para.findWalletByAddress(walletAddress);
@@ -41,7 +40,8 @@ import {
     );
   
     /* --------------------------------------------------------------------- 2 */
-    const id = Uint8Array.from(Array(32).fill(1));
+    const id = new Uint8Array(32);
+    crypto.getRandomValues(id);
     const payer = Keypair.generate();
     const [swigAddress] = findSwigPda(id);
   
