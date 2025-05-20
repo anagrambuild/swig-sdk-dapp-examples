@@ -103,7 +103,7 @@ export const Home: React.FC<HomeProps> = ({
           </>
         ) : (
           <>
-            <Defi walletAddress={walletAddress!} onLogout={onLogout} setView={setView} />
+            {view === 'home' && <Defi walletAddress={walletAddress!} onLogout={onLogout} setView={setView} />}
             {view === 'swig' && <SwigDashboard walletAddress={walletAddress} />}
             {view === 'gas' && <SwigTokenDemo />}
             {view === "bundled" && <BundledTransactions setView={setView} />}
