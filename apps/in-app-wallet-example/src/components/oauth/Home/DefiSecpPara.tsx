@@ -158,6 +158,7 @@ const DefiSecpPara: React.FC<DefiProps> = ({ walletAddress, setView }) => {
             }
 
             console.log("[transfer] Got 65-byte signature via Para");
+            sigBytes[64] = sigBytes[64] ? 28 : 27;
             return sigBytes;
           } else {
             throw new Error("Signature denied or not returned from Para");
