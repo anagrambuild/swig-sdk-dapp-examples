@@ -18,16 +18,15 @@ import {
 import { hexToBytes } from "@noble/curves/abstract/utils";
 import { para } from "../../../client/para";
 import { getEvmWalletPublicKey } from "../../../utils/evm/publickey";
-import SwigAdd from "./SwigAdd";
 
 interface DefiProps {
-  onLogout: () => Promise<void>;
   walletAddress?: string;
+  setView: (view: "defi_ed25519" | "swig" | "gas" | "bundled") => void;
 }
 
 const RECIPIENT_ADDRESS = "BKV7zy1Q74pyk3eehMrVQeau9pj2kEp6k36RZwFTFdHk";
 
-const DefiSecpPara: React.FC<DefiProps> = ({ walletAddress, onLogout }) => {
+const DefiSecpPara: React.FC<DefiProps> = ({ walletAddress, setView }) => {
   const { roles, swigAddress } = useSwigContext();
   const [selectedRole, setSelectedRole] = useState<string>("");
   const [solAmount, setSolAmount] = useState<string>("");
@@ -197,17 +196,20 @@ const DefiSecpPara: React.FC<DefiProps> = ({ walletAddress, onLogout }) => {
   };
 
   if (!swigAddress) {
-    return <SwigAdd />;
+    return (
+      <div className="flex flex-col gap-2 justify-center w-[50%] mx-auto">
+        <p>No roles found. Please create a swig wallet first.</p>
+        <Button variant="primary" onClick={() => setView("swig")}>
+          Go to Swig Dashboard
+        </Button>
+      </div>
+    );
   }
   return (
     <div className="flex flex-col gap-2 justify-between flex-grow">
       <div className="flex flex-col gap-4 justify-center">
-        <h2 className="text-xl font-medium mb-2">You are logged in!</h2>
         {walletAddress ? (
           <div className="flex flex-col gap-2">
-            <p>
-              Your wallet address is: <span className="font-mono">{walletAddress}</span>
-            </p>
             {walletBalance !== null && (
               <p className="text-lg font-medium text-blue-600 mb-4">
                 Balance: {walletBalance.toFixed(4)} SOL
@@ -285,11 +287,6 @@ const DefiSecpPara: React.FC<DefiProps> = ({ walletAddress, onLogout }) => {
             </div>
           </div>
         )}
-      </div>
-      <div className="flex flex-col gap-2 justify-center w-[50%] mx-auto">
-        <Button variant="secondary" onClick={onLogout}>
-          Logout
-        </Button>
       </div>
     </div>
   );

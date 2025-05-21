@@ -7,13 +7,12 @@ import { Ed25519Authority, fetchSwig } from "@swig-wallet/classic";
 
 interface DefiProps {
   walletAddress?: string;
-  onLogout: () => Promise<void>;
-  setView: (view: "home" | "swig" | "gas" | "bundled") => void;
+  setView: (view: "defi_ed25519" | "swig" | "gas" | "bundled") => void;
 }
 
 const RECIPIENT_ADDRESS = "BKV7zy1Q74pyk3eehMrVQeau9pj2kEp6k36RZwFTFdHk";
 
-const Defi: React.FC<DefiProps> = ({ walletAddress, onLogout, setView }) => {
+const Defi: React.FC<DefiProps> = ({ walletAddress, setView }) => {
   const { roles, swigAddress } = useSwigContext();
   const [selectedRole, setSelectedRole] = useState<string>("");
   const [solAmount, setSolAmount] = useState<string>("");
@@ -183,9 +182,6 @@ const Defi: React.FC<DefiProps> = ({ walletAddress, onLogout, setView }) => {
         <h2 className="text-xl font-medium mb-2">Basic demo of sending SOL</h2>
         {walletAddress ? (
           <div className="flex flex-col gap-2">
-            <p>
-              Your first PARA wallet address is: <span className="font-mono">{walletAddress}</span>
-            </p>
             {walletBalance !== null && (
               <p className="text-lg font-medium text-blue-600 mb-4">
                 Total Balance: {walletBalance.toFixed(4)} SOL
@@ -317,11 +313,6 @@ const Defi: React.FC<DefiProps> = ({ walletAddress, onLogout, setView }) => {
             </Button>
           </div>
         )}
-      </div>
-      <div className="flex flex-col gap-2 justify-center w-[50%] mx-auto mt-6">
-        <Button variant="secondary" onClick={onLogout}>
-          Logout
-        </Button>
       </div>
     </div>
   );
