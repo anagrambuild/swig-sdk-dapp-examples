@@ -94,8 +94,10 @@ export default function SwigTokenDemo() {
             const fetched = await fetchSwig(connection, swigPubkey);
             setSwig(fetched);
 
-            const rootKeypairSecret = localStorage.getItem("rootKeypair");
-            if (!rootKeypairSecret) throw new Error("Root keypair not found.");
+            const rootKeypairSecret =
+              localStorage.getItem("rootKeypair_0") || localStorage.getItem("roleKeypair_0");
+            if (!rootKeypairSecret)
+              throw new Error("Root keypair not found. Please create a role first.");
             setRootKeypair(Keypair.fromSecretKey(new Uint8Array(JSON.parse(rootKeypairSecret))));
           },
           0

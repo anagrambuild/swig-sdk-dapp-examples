@@ -2,18 +2,17 @@ import { Button, Select } from "@swig/ui";
 import { useSwigContext } from "../../../context/SwigContext";
 import { useState, useEffect } from "react";
 import { Connection, LAMPORTS_PER_SOL, PublicKey, SystemProgram, Keypair } from "@solana/web3.js";
-import { signTransaction } from "../../../utils/swig/transactions";
 import { Ed25519Authority, fetchSwig } from "@swig-wallet/classic";
+import { signTransaction } from "../../../utils/swig/transactions";
 
-interface DefiProps {
+interface DefiEd25519Props {
   walletAddress?: string;
-  onLogout: () => Promise<void>;
-  setView: (view: "home" | "swig" | "gas" | "bundled") => void;
+  setView: (view: "defi_ed25519" | "swig" | "gas" | "bundled") => void;
 }
 
 const RECIPIENT_ADDRESS = "BKV7zy1Q74pyk3eehMrVQeau9pj2kEp6k36RZwFTFdHk";
 
-const Defi: React.FC<DefiProps> = ({ walletAddress, onLogout, setView }) => {
+const DefiEd25519: React.FC<DefiEd25519Props> = ({ walletAddress, setView }) => {
   const { roles, swigAddress } = useSwigContext();
   const [selectedRole, setSelectedRole] = useState<string>("");
   const [solAmount, setSolAmount] = useState<string>("");
@@ -91,7 +90,9 @@ const Defi: React.FC<DefiProps> = ({ walletAddress, onLogout, setView }) => {
       const connection = new Connection("http://localhost:8899", "confirmed");
 
       // Get the selected role's keypair from localStorage
-      const roleKeypairSecret = localStorage.getItem(`roleKeypair_${selectedRole}`);
+      const roleKeypairSecret =
+        localStorage.getItem(`rootKeypair_${selectedRole}`) ||
+        localStorage.getItem(`roleKeypair_${selectedRole}`);
       if (!roleKeypairSecret) {
         setClientError(
           `Role keypair not found for role ${selectedRole}. This role may have been created before keypair storage was implemented. Please recreate the role.`
@@ -113,18 +114,6 @@ const Defi: React.FC<DefiProps> = ({ walletAddress, onLogout, setView }) => {
       // Debug logs
       const swig = await fetchSwig(connection, new PublicKey(swigAddress));
       const foundRole = swig.findRoleByAuthority(authority);
-      console.log("Found role for authority:", foundRole);
-      console.log("Role can spend SOL:", foundRole?.canSpendSol?.());
-      console.log("Role can manage authority:", foundRole?.canManageAuthority?.());
-      console.log("All roles:", swig.roles);
-
-      // Log role details
-      console.log("Role details:", {
-        id: foundRole?.id,
-        authorityType: foundRole?.authorityType,
-        canSpendSol: foundRole?.canSpendSol?.(),
-        canManageAuthority: foundRole?.canManageAuthority?.(),
-      });
 
       if (!foundRole) {
         setClientError(
@@ -134,27 +123,16 @@ const Defi: React.FC<DefiProps> = ({ walletAddress, onLogout, setView }) => {
       }
 
       // Let the SDK handle the validation and signing
-      try {
-        const signature = await signTransaction(
-          connection,
-          new PublicKey(swigAddress),
-          authority,
-          roleKeypair,
-          [transferIx]
-        );
-        console.log("Transaction signed successfully with signature:", signature);
-        setTxSignature(signature);
+      const signature = await signTransaction(
+        connection,
+        new PublicKey(swigAddress),
+        authority,
+        roleKeypair,
+        [transferIx]
+      );
 
-        // Wait for confirmation
-        const confirmation = await connection.confirmTransaction(signature, "confirmed");
-
-        if (confirmation.value.err) {
-          setSdkError("Transaction failed: " + JSON.stringify(confirmation.value.err));
-        }
-      } catch (error) {
-        console.error("Detailed signing error:", error);
-        throw error;
-      }
+      console.log("Transaction sent and confirmed with signature:", signature);
+      setTxSignature(signature);
     } catch (error) {
       console.error("Transfer failed:", error);
       setSdkError((error as Error).message);
@@ -183,9 +161,6 @@ const Defi: React.FC<DefiProps> = ({ walletAddress, onLogout, setView }) => {
         <h2 className="text-xl font-medium mb-2">Basic demo of sending SOL</h2>
         {walletAddress ? (
           <div className="flex flex-col gap-2">
-            <p>
-              Your first PARA wallet address is: <span className="font-mono">{walletAddress}</span>
-            </p>
             {walletBalance !== null && (
               <p className="text-lg font-medium text-blue-600 mb-4">
                 Total Balance: {walletBalance.toFixed(4)} SOL
@@ -318,13 +293,8 @@ const Defi: React.FC<DefiProps> = ({ walletAddress, onLogout, setView }) => {
           </div>
         )}
       </div>
-      <div className="flex flex-col gap-2 justify-center w-[50%] mx-auto mt-6">
-        <Button variant="secondary" onClick={onLogout}>
-          Logout
-        </Button>
-      </div>
     </div>
   );
 };
 
-export default Defi;
+export default DefiEd25519;

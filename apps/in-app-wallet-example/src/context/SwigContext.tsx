@@ -105,7 +105,8 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
         swigPdaBase58 = swigAddress;
 
         /* store JSON array under the familiar key */
-        localStorage.setItem("rootKeypair", JSON.stringify(swigAddressSecret));
+        localStorage.setItem("rootKeypair_0", JSON.stringify(swigAddressSecret));
+        localStorage.removeItem("rootKeypair");
       } else {
         /* Ed25519 root (Solana wallet) */
         const { swigAddress, rootKeypairSecret } = await createSwigAccount(
@@ -115,7 +116,8 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
 
         swigPdaBase58 = swigAddress.toBase58();
 
-        localStorage.setItem("rootKeypair", JSON.stringify(rootKeypairSecret));
+        localStorage.setItem("rootKeypair_0", JSON.stringify(rootKeypairSecret));
+        localStorage.removeItem("rootKeypair");
       }
       console.log(`[setupSwigWallet] Airdropping 2 SOL to ${swigPdaBase58}…`);
       const airdropSig = await connection.requestAirdrop(
@@ -154,11 +156,11 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
     if (!swigAddress || !solAmount || !roleName) return;
 
     let sig: string | null = null; // Declare outside to capture even on error
+    let newKeypair: Keypair | undefined = undefined; // <-- Track newKeypair for SOLANA
 
     try {
       setIsAddingRole(true);
       setError(null);
-      console.log(`[addRole] Adding role: ${roleName} with ${solAmount} SOL`);
 
       const connection = new Connection("http://localhost:8899", "confirmed");
       const swig = await fetchSwig(connection, new PublicKey(swigAddress));
@@ -168,17 +170,15 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
       const actions = Actions.set();
       const solAmountInLamports = BigInt(Number(solAmount) * LAMPORTS_PER_SOL);
       actions.solLimit({ amount: solAmountInLamports });
-      console.log(`[addRole] Setting SOL limit: ${solAmountInLamports.toString()} lamports`);
 
-      const rootKeypairSecret = localStorage.getItem("rootKeypair");
+      const rootKeypairSecret = localStorage.getItem("rootKeypair_0");
       if (!rootKeypairSecret) throw new Error("Root keypair not found in localStorage");
       const rootKeypair = Keypair.fromSecretKey(new Uint8Array(JSON.parse(rootKeypairSecret)));
 
       let addAuthorityIx;
 
       if (walletType === "SOLANA") {
-        const newKeypair = Keypair.generate();
-        console.log(`[addRole] Generated new Ed25519 keypair: ${newKeypair.publicKey.toBase58()}`);
+        newKeypair = Keypair.generate();
         const newAuthority = Ed25519Authority.fromPublicKey(newKeypair.publicKey);
 
         addAuthorityIx = await addAuthorityInstruction(
@@ -192,9 +192,7 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
         if (!currentWallet) throw new Error("EVM public key not found");
         const hexPubkey = currentWallet.startsWith("0x") ? currentWallet.slice(2) : currentWallet;
         const currentWalletBytes = hexToBytes(hexPubkey);
-        console.log(`[addRole] Using EVM wallet public key: 0x${hexPubkey}`);
         const newAuthority = Secp256k1Authority.fromPublicKeyBytes(currentWalletBytes);
-        console.log(`[addRole] Generated new Secp256k1 keypair: ${newAuthority.toString()}`);
 
         const instOptions: InstructionDataOptions = {
           currentSlot: BigInt(await connection.getSlot("finalized")),
@@ -209,8 +207,6 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
               walletId: wallet.id,
               messageBase64: base64Msg,
             });
-
-            //console.log("wallet id", wallet.id)
 
             if ("signature" in res) {
               // decode based on what encoding you used
@@ -266,6 +262,14 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
       }) as RoleWithName[];
 
       setRoles(newRoles);
+      // --- Save newKeypair to localStorage for SOLANA roles ---
+      if (walletType === "SOLANA" && newKeypair) {
+        const newRoleIndex = newRoles.length - 1;
+        localStorage.setItem(
+          `roleKeypair_${newRoleIndex}`,
+          JSON.stringify(Array.from(newKeypair.secretKey))
+        );
+      }
     } catch (error) {
       console.error("Failed to add role:", error);
       if (sig) {
