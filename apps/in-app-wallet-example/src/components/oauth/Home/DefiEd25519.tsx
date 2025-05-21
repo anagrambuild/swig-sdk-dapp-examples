@@ -1,15 +1,7 @@
 import { Button, Select } from "@swig/ui";
 import { useSwigContext } from "../../../context/SwigContext";
 import { useState, useEffect } from "react";
-import {
-  Connection,
-  LAMPORTS_PER_SOL,
-  PublicKey,
-  SystemProgram,
-  Keypair,
-  Transaction,
-  sendAndConfirmTransaction,
-} from "@solana/web3.js";
+import { Connection, LAMPORTS_PER_SOL, PublicKey, SystemProgram, Keypair } from "@solana/web3.js";
 import { Ed25519Authority, fetchSwig } from "@swig-wallet/classic";
 import { signTransaction } from "../../../utils/swig/transactions";
 

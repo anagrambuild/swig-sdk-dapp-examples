@@ -158,18 +158,21 @@ const BundledTransactions: React.FC<BundledTransactionsProps> = ({ setView }) =>
     try {
       const connection = new Connection("http://localhost:8899", "confirmed");
 
-      // Get the root keypair from localStorage
-      const rootKeypairSecret = localStorage.getItem("rootKeypair");
-      if (!rootKeypairSecret) {
-        setClientError("Root keypair not found");
+      // Get the role keypair from localStorage
+      const roleKeypairSecret =
+        localStorage.getItem(`rootKeypair_${selectedRole}`) ||
+        localStorage.getItem(`roleKeypair_${selectedRole}`);
+      if (!roleKeypairSecret) {
+        setClientError(
+          `Role keypair not found for role ${selectedRole}. This role may have been created before keypair storage was implemented. Please recreate the role.`
+        );
         setIsProcessing(false);
         return;
       }
+      const roleKeypair = Keypair.fromSecretKey(new Uint8Array(JSON.parse(roleKeypairSecret)));
 
-      const rootKeypair = Keypair.fromSecretKey(new Uint8Array(JSON.parse(rootKeypairSecret)));
-
-      // Create the authority from the root keypair
-      const authority = Ed25519Authority.fromPublicKey(rootKeypair.publicKey);
+      // Create the authority from the role keypair
+      const authority = Ed25519Authority.fromPublicKey(roleKeypair.publicKey);
 
       // Execute first transaction
       try {
@@ -183,21 +186,12 @@ const BundledTransactions: React.FC<BundledTransactionsProps> = ({ setView }) =>
           connection,
           new PublicKey(swigAddress),
           authority,
-          rootKeypair,
+          roleKeypair,
           [transfer1Ix]
         );
 
         setTx1Signature(signature1);
-
-        // Wait for confirmation
-        const confirmation1 = await connection.confirmTransaction(signature1, "confirmed");
-
-        if (confirmation1.value.err) {
-          setTx1Error(JSON.stringify(confirmation1.value.err));
-          setTx1Success(false);
-        } else {
-          setTx1Success(true);
-        }
+        setTx1Success(true);
       } catch (error) {
         console.error("Transaction 1 failed:", error);
         setTx1Error((error as Error).message);
@@ -216,21 +210,12 @@ const BundledTransactions: React.FC<BundledTransactionsProps> = ({ setView }) =>
           connection,
           new PublicKey(swigAddress),
           authority,
-          rootKeypair,
+          roleKeypair,
           [transfer2Ix]
         );
 
         setTx2Signature(signature2);
-
-        // Wait for confirmation
-        const confirmation2 = await connection.confirmTransaction(signature2, "confirmed");
-
-        if (confirmation2.value.err) {
-          setTx2Error(JSON.stringify(confirmation2.value.err));
-          setTx2Success(false);
-        } else {
-          setTx2Success(true);
-        }
+        setTx2Success(true);
       } catch (error) {
         console.error("Transaction 2 failed:", error);
         setTx2Error((error as Error).message);
