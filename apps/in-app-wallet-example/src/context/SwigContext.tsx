@@ -105,7 +105,8 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
         swigPdaBase58 = swigAddress;
 
         /* store JSON array under the familiar key */
-        localStorage.setItem("rootKeypair", JSON.stringify(swigAddressSecret));
+        localStorage.setItem("rootKeypair_0", JSON.stringify(swigAddressSecret));
+        localStorage.removeItem("rootKeypair");
       } else {
         /* Ed25519 root (Solana wallet) */
         const { swigAddress, rootKeypairSecret } = await createSwigAccount(
@@ -115,7 +116,8 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
 
         swigPdaBase58 = swigAddress.toBase58();
 
-        localStorage.setItem("rootKeypair", JSON.stringify(rootKeypairSecret));
+        localStorage.setItem("rootKeypair_0", JSON.stringify(rootKeypairSecret));
+        localStorage.removeItem("rootKeypair");
       }
       console.log(`[setupSwigWallet] Airdropping 2 SOL to ${swigPdaBase58}…`);
       const airdropSig = await connection.requestAirdrop(
@@ -169,7 +171,7 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
       const solAmountInLamports = BigInt(Number(solAmount) * LAMPORTS_PER_SOL);
       actions.solLimit({ amount: solAmountInLamports });
 
-      const rootKeypairSecret = localStorage.getItem("rootKeypair");
+      const rootKeypairSecret = localStorage.getItem("rootKeypair_0");
       if (!rootKeypairSecret) throw new Error("Root keypair not found in localStorage");
       const rootKeypair = Keypair.fromSecretKey(new Uint8Array(JSON.parse(rootKeypairSecret)));
 
