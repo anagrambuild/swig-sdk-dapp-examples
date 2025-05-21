@@ -171,7 +171,7 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
       const solAmountInLamports = BigInt(Number(solAmount) * LAMPORTS_PER_SOL);
       actions.solLimit({ amount: solAmountInLamports });
 
-      const rootKeypairSecret = localStorage.getItem("rootKeypair");
+      const rootKeypairSecret = localStorage.getItem("rootKeypair_0");
       if (!rootKeypairSecret) throw new Error("Root keypair not found in localStorage");
       const rootKeypair = Keypair.fromSecretKey(new Uint8Array(JSON.parse(rootKeypairSecret)));
 

@@ -1,18 +1,26 @@
 import { Button, Select } from "@swig/ui";
 import { useSwigContext } from "../../../context/SwigContext";
 import { useState, useEffect } from "react";
-import { Connection, LAMPORTS_PER_SOL, PublicKey, SystemProgram, Keypair } from "@solana/web3.js";
-import { signTransaction } from "../../../utils/swig/transactions";
+import {
+  Connection,
+  LAMPORTS_PER_SOL,
+  PublicKey,
+  SystemProgram,
+  Keypair,
+  Transaction,
+  sendAndConfirmTransaction,
+} from "@solana/web3.js";
 import { Ed25519Authority, fetchSwig } from "@swig-wallet/classic";
+import { signTransaction } from "../../../utils/swig/transactions";
 
-interface DefiProps {
+interface DefiEd25519Props {
   walletAddress?: string;
   setView: (view: "defi_ed25519" | "swig" | "gas" | "bundled") => void;
 }
 
 const RECIPIENT_ADDRESS = "BKV7zy1Q74pyk3eehMrVQeau9pj2kEp6k36RZwFTFdHk";
 
-const Defi: React.FC<DefiProps> = ({ walletAddress, setView }) => {
+const DefiEd25519: React.FC<DefiEd25519Props> = ({ walletAddress, setView }) => {
   const { roles, swigAddress } = useSwigContext();
   const [selectedRole, setSelectedRole] = useState<string>("");
   const [solAmount, setSolAmount] = useState<string>("");
@@ -90,7 +98,9 @@ const Defi: React.FC<DefiProps> = ({ walletAddress, setView }) => {
       const connection = new Connection("http://localhost:8899", "confirmed");
 
       // Get the selected role's keypair from localStorage
-      const roleKeypairSecret = localStorage.getItem(`roleKeypair_${selectedRole}`);
+      const roleKeypairSecret =
+        localStorage.getItem(`rootKeypair_${selectedRole}`) ||
+        localStorage.getItem(`roleKeypair_${selectedRole}`);
       if (!roleKeypairSecret) {
         setClientError(
           `Role keypair not found for role ${selectedRole}. This role may have been created before keypair storage was implemented. Please recreate the role.`
@@ -121,27 +131,16 @@ const Defi: React.FC<DefiProps> = ({ walletAddress, setView }) => {
       }
 
       // Let the SDK handle the validation and signing
-      try {
-        const signature = await signTransaction(
-          connection,
-          new PublicKey(swigAddress),
-          authority,
-          roleKeypair,
-          [transferIx]
-        );
-        console.log("Transaction signed successfully with signature:", signature);
-        setTxSignature(signature);
+      const signature = await signTransaction(
+        connection,
+        new PublicKey(swigAddress),
+        authority,
+        roleKeypair,
+        [transferIx]
+      );
 
-        // Wait for confirmation
-        const confirmation = await connection.confirmTransaction(signature, "confirmed");
-
-        if (confirmation.value.err) {
-          setSdkError("Transaction failed: " + JSON.stringify(confirmation.value.err));
-        }
-      } catch (error) {
-        console.error("Detailed signing error:", error);
-        throw error;
-      }
+      console.log("Transaction sent and confirmed with signature:", signature);
+      setTxSignature(signature);
     } catch (error) {
       console.error("Transfer failed:", error);
       setSdkError((error as Error).message);
@@ -306,4 +305,4 @@ const Defi: React.FC<DefiProps> = ({ walletAddress, setView }) => {
   );
 };
 
-export default Defi;
+export default DefiEd25519;
