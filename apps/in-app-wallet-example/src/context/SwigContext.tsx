@@ -14,6 +14,7 @@ import { createSwigAccount } from "../utils/swig";
 import { hexToBytes } from "@noble/curves/abstract/utils";
 import { getEvmWalletPublicKey } from "../utils/evm/publickey";
 import { createSwigAccountSecpPara } from "../utils/swig/createSwigAccountSecp";
+import { Network } from "@getpara/web-sdk";
 
 interface RoleWithName extends Role {
   name: string;
@@ -31,6 +32,7 @@ interface SwigContextType {
   setupSwigWallet: () => Promise<void>;
   getRoles: () => Promise<void>;
   addRole: (roleName: string, solAmount: string) => Promise<void>;
+  getConnection: () => Promise<Connection>;
 }
 
 const SwigContext = createContext<SwigContextType | undefined>(undefined);
@@ -58,11 +60,23 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
   const [isAddingRole, setIsAddingRole] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  //this should read local storage key: swig_network and if set to localnet or devnet
+  const getConnection = async (): Promise<Connection> => {
+    const network = localStorage.getItem("swig_network") || "localnet";
+    const endpoint =
+      network === "devnet"
+        ? "https://api.devnet.solana.com"
+        : "http://localhost:8899";
+  
+    //console.log(`[getConnection] Using ${network} RPC: ${endpoint}`);
+    return new Connection(endpoint, "confirmed");
+  };
+
   //fetch swig address and roles
   const getSwigRoles = async () => {
     if (!swigAddress) return [];
     try {
-      const connection = new Connection("http://localhost:8899", "confirmed");
+      const connection = await getConnection();
       const swig = await fetchSwig(connection, new PublicKey(swigAddress));
       const fetchedRoles = swig.roles || [];
 
@@ -91,7 +105,7 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
       console.log("[setupSwigWallet] Starting Swig wallet setup…");
       setIsSettingUp(true);
       setError(null);
-      const connection = new Connection("http://localhost:8899", "confirmed");
+      const connection = await getConnection();
       let swigPdaBase58: string;
       if (walletType === "EVM") {
         //log permission type
@@ -162,7 +176,7 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
       setIsAddingRole(true);
       setError(null);
 
-      const connection = new Connection("http://localhost:8899", "confirmed");
+      const connection = await getConnection();
       const swig = await fetchSwig(connection, new PublicKey(swigAddress));
       const rootRole = swig.roles.find((role) => role.canManageAuthority());
       if (!rootRole) throw new Error("No role found with authority management permissions");
@@ -292,8 +306,9 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
     setPermissionType,
     setupSwigWallet,
     getRoles,
+    getConnection,
     addRole,
-  };
+  };  
 
   return <SwigContext.Provider value={value}>{children}</SwigContext.Provider>;
 }

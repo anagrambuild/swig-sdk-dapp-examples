@@ -11,6 +11,10 @@ const ParaOAuth = () => {
   const [walletType, setWalletType] = useState<'SOLANA' | 'EVM'>(
     (localStorage.getItem('walletType') as 'SOLANA' | 'EVM') || 'SOLANA'
   );
+  const [network, setNetwork] = useState<'localnet' | 'devnet'>(
+    (localStorage.getItem('swig_network') as 'localnet' | 'devnet') || 'localnet'
+  );
+  
   const [error, setError] = useState<string>('');
 
   const handleCheckIfAuthenticated = async () => {
@@ -22,6 +26,13 @@ const ParaOAuth = () => {
     if (!walletType) {
       walletType = "SOLANA";
       localStorage.setItem("walletType", walletType);
+    }
+
+    // Set network to "localnet" by default if not set
+    let network = localStorage.getItem("swig_network");
+    if (!network) {
+      network = "localnet";
+      localStorage.setItem("swig_network", network);
     }
   
     try {
@@ -148,11 +159,14 @@ const ParaOAuth = () => {
     <main className='flex flex-col items-center min-h-screen gap-2 p-4'>
       {isConnected ? (
         <Home
-          walletAddress={wallet}
-          walletType={walletType}
-          setWalletType={setWalletType}
-          onLogout={handleLogout}
-        />
+        walletAddress={wallet}
+        walletType={walletType}
+        setWalletType={setWalletType}
+        onLogout={handleLogout}
+        network={network}
+        setNetwork={setNetwork}
+      />
+      
       ) : (
         <>
           <h1 className='text-2xl font-bold'>

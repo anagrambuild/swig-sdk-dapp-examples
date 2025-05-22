@@ -20,10 +20,8 @@ import { useSwigContext } from "../../../context/SwigContext";
 import { sendAndConfirm } from "../../../utils/swig";
 import SwigAdd from "./SwigAdd";
 
-const connection = new Connection("http://localhost:8899", "confirmed");
-
 export default function SwigTokenDemo() {
-  const { swigAddress, getRoles } = useSwigContext();
+  const { swigAddress, getRoles, getConnection } = useSwigContext();
 
   const [status, setStatus] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -45,8 +43,9 @@ export default function SwigTokenDemo() {
 
   const refreshBalances = async () => {
     if (!swigUsdcAta || !recipUsdcAta) return;
-    const swigBalance = await connection.getTokenAccountBalance(swigUsdcAta);
-    const recipBalance = await connection.getTokenAccountBalance(recipUsdcAta);
+    const conn = await getConnection();
+    const swigBalance = await conn.getTokenAccountBalance(swigUsdcAta);
+    const recipBalance = await conn.getTokenAccountBalance(recipUsdcAta);
     setSwigUsdcBalance(Number(swigBalance.value.uiAmountString));
     setRecipUsdcBalance(Number(recipBalance.value.uiAmountString));
   };
@@ -86,146 +85,135 @@ export default function SwigTokenDemo() {
     {
       label: "Step 1: Fetch Swig + Root Authority",
       action: () =>
-        handle(
-          "Fetching Swig + Root Authority",
-          async () => {
-            if (!swigAddress) throw new Error("Swig wallet not initialized");
-            const swigPubkey = new PublicKey(swigAddress);
-            const fetched = await fetchSwig(connection, swigPubkey);
-            setSwig(fetched);
+        handle("Fetching Swig + Root Authority", async () => {
+          if (!swigAddress) throw new Error("Swig wallet not initialized");
+          const swigPubkey = new PublicKey(swigAddress);
+          const conn = await getConnection();
+          const fetched = await fetchSwig(conn, swigPubkey);
+          setSwig(fetched);
 
-            const rootKeypairSecret =
-              localStorage.getItem("rootKeypair_0") || localStorage.getItem("roleKeypair_0");
-            if (!rootKeypairSecret)
-              throw new Error("Root keypair not found. Please create a role first.");
-            setRootKeypair(Keypair.fromSecretKey(new Uint8Array(JSON.parse(rootKeypairSecret))));
-          },
-          0
-        ),
+          const rootKeypairSecret =
+            localStorage.getItem("rootKeypair_0") || localStorage.getItem("roleKeypair_0");
+          if (!rootKeypairSecret)
+            throw new Error("Root keypair not found. Please create a role first.");
+          setRootKeypair(Keypair.fromSecretKey(new Uint8Array(JSON.parse(rootKeypairSecret))));
+        }, 0),
     },
     {
       label: "Step 2: Airdrop and Create Dev Wallet + Recipient",
       action: () =>
-        handle(
-          "Setting up wallets",
-          async () => {
-            const dev = Keypair.generate();
-            const recip = Keypair.generate();
-            setDevWallet(dev);
-            setRecipient(recip);
-            await connection.requestAirdrop(dev.publicKey, LAMPORTS_PER_SOL);
-            await connection.requestAirdrop(recip.publicKey, LAMPORTS_PER_SOL);
-            await new Promise((r) => setTimeout(r, 3000));
-          },
-          1
-        ),
+        handle("Setting up wallets", async () => {
+          const conn = await getConnection();
+          const dev = Keypair.generate();
+          const recip = Keypair.generate();
+          setDevWallet(dev);
+          setRecipient(recip);
+          await conn.requestAirdrop(dev.publicKey, LAMPORTS_PER_SOL);
+          await conn.requestAirdrop(recip.publicKey, LAMPORTS_PER_SOL);
+          await new Promise((r) => setTimeout(r, 3000));
+        }, 1),
     },
     {
       label: "Step 3: Create USDC Mint and Token Accounts",
       action: () =>
-        handle(
-          "Mint + Token Accounts",
-          async () => {
-            if (!devWallet || !recipient || !swigAddress) throw new Error("Missing dependencies");
-            const mint = await createMint(connection, devWallet, devWallet.publicKey, null, 6);
-            setUsdcMint(mint);
+        handle("Mint + Token Accounts", async () => {
+          const conn = await getConnection();
+          if (!devWallet || !recipient || !swigAddress) throw new Error("Missing dependencies");
+          const mint = await createMint(conn, devWallet, devWallet.publicKey, null, 6);
+          setUsdcMint(mint);
 
-            const swigAta = await getOrCreateAssociatedTokenAccount(
-              connection,
-              devWallet,
-              mint,
-              new PublicKey(swigAddress),
-              true
-            );
-            setSwigUsdcAta(swigAta.address);
+          const swigAta = await getOrCreateAssociatedTokenAccount(
+            conn,
+            devWallet,
+            mint,
+            new PublicKey(swigAddress),
+            true
+          );
+          setSwigUsdcAta(swigAta.address);
 
-            const recipAta = await getOrCreateAssociatedTokenAccount(
-              connection,
-              devWallet,
-              mint,
-              recipient.publicKey
-            );
-            setRecipUsdcAta(recipAta.address);
-          },
-          2
-        ),
+          const recipAta = await getOrCreateAssociatedTokenAccount(
+            conn,
+            devWallet,
+            mint,
+            recipient.publicKey
+          );
+          setRecipUsdcAta(recipAta.address);
+        }, 2),
     },
     {
       label: "Step 4: Mint 1000 USDC to Swig",
       action: () =>
-        handle(
-          "Minting 1000 USDC",
-          async () => {
-            if (!usdcMint || !swigUsdcAta || !devWallet) throw new Error("Minting failed");
-            await mintTo(
-              connection,
-              devWallet,
-              usdcMint,
-              swigUsdcAta,
-              devWallet.publicKey,
-              1000 * 10 ** 6
-            );
-            await refreshBalances();
-          },
-          3
-        ),
+        handle("Minting 1000 USDC", async () => {
+          const conn = await getConnection();
+          if (!usdcMint || !swigUsdcAta || !devWallet) throw new Error("Minting failed");
+          await mintTo(
+            conn,
+            devWallet,
+            usdcMint,
+            swigUsdcAta,
+            devWallet.publicKey,
+            1000 * 10 ** 6
+          );
+          await refreshBalances();
+        }, 3),
     },
     {
       label: "Step 5: Add Token Spending Role to Dev Wallet",
       action: () =>
-        handle(
-          "Assigning token role",
-          async () => {
-            if (!swig || !rootKeypair || !usdcMint || !devWallet)
-              throw new Error("Missing role deps");
+        handle("Assigning token role", async () => {
+          const conn = await getConnection();
+          if (!swig || !rootKeypair || !usdcMint || !devWallet)
+            throw new Error("Missing role deps");
 
-            const rootAuth = Ed25519Authority.fromPublicKey(rootKeypair.publicKey);
-            const devAuth = Ed25519Authority.fromPublicKey(devWallet.publicKey);
-            const ix = await addAuthorityInstruction(
-              swig.findRoleByAuthority(rootAuth)!,
-              rootKeypair.publicKey,
-              devAuth,
-              Actions.set()
-                .tokenLimit({
-                  mint: usdcMint,
-                  amount: BigInt(1000 * 10 ** 6),
-                })
-                .get()
-            );
-            await sendAndConfirm(connection, ix, rootKeypair);
-            await swig.refetch(connection);
-            setDevRole(swig.findRoleByAuthority(devAuth)!);
-          },
-          4
-        ),
+          const rootAuth = Ed25519Authority.fromPublicKey(rootKeypair.publicKey);
+          const devAuth = Ed25519Authority.fromPublicKey(devWallet.publicKey);
+          const ix = await addAuthorityInstruction(
+            swig.findRoleByAuthority(rootAuth)!,
+            rootKeypair.publicKey,
+            devAuth,
+            Actions.set()
+              .tokenLimit({
+                mint: usdcMint,
+                amount: BigInt(1000 * 10 ** 6),
+              })
+              .get()
+          );
+          await sendAndConfirm(conn, ix, rootKeypair);
+          await swig.refetch(conn);
+          setDevRole(swig.findRoleByAuthority(devAuth)!);
+        }, 4),
     },
     {
       label: "Step 6: Transfer 250 USDC from Swig to Recipient",
       action: () =>
-        handle(
-          "Transferring 250 USDC",
-          async () => {
-            if (!swigUsdcAta || !recipUsdcAta || !swigAddress || !devRole || !devWallet) {
-              throw new Error("Transfer missing dependencies");
-            }
+        handle("Transferring 250 USDC", async () => {
+          const conn = await getConnection();
+          if (!swigUsdcAta || !recipUsdcAta || !swigAddress || !devRole || !devWallet) {
+            throw new Error("Transfer missing dependencies");
+          }
 
-            const ix = createTransferInstruction(
-              swigUsdcAta,
-              recipUsdcAta,
-              new PublicKey(swigAddress),
-              250 * 10 ** 6,
-              [],
-              TOKEN_PROGRAM_ID
-            );
+          const ix = createTransferInstruction(
+            swigUsdcAta,
+            recipUsdcAta,
+            new PublicKey(swigAddress),
+            250 * 10 ** 6,
+            [],
+            TOKEN_PROGRAM_ID
+          );
 
-            const signed = await signInstruction(devRole, devWallet.publicKey, [ix]);
-            const sig = await sendAndConfirm(connection, signed, devWallet);
-            setTxUrl(`https://explorer.solana.com/tx/${sig}?cluster=custom`);
-            await getRoles();
-            await refreshBalances();
-          },
-          5
-        ),
+          const signed = await signInstruction(devRole, devWallet.publicKey, [ix]);
+          const sig = await sendAndConfirm(conn, signed, devWallet);
+          const network = localStorage.getItem("swig_network") || "localnet";
+          const explorerUrl =
+            network === "devnet"
+              ? `https://explorer.solana.com/tx/${sig}?cluster=devnet`
+              : `https://explorer.solana.com/tx/${sig}?cluster=custom&customUrl=${encodeURIComponent(
+                  "http://localhost:8899"
+                )}`;
+          setTxUrl(explorerUrl);
+          await getRoles();
+          await refreshBalances();
+        }, 5),
     },
   ];
 
