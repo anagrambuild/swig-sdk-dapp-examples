@@ -13,7 +13,7 @@ interface DefiEd25519Props {
 const RECIPIENT_ADDRESS = "BKV7zy1Q74pyk3eehMrVQeau9pj2kEp6k36RZwFTFdHk";
 
 const DefiEd25519: React.FC<DefiEd25519Props> = ({ walletAddress, setView }) => {
-  const { roles, swigAddress } = useSwigContext();
+  const { roles, swigAddress, getConnection } = useSwigContext();
   const [selectedRole, setSelectedRole] = useState<string>("");
   const [solAmount, setSolAmount] = useState<string>("");
   const [isTransferring, setIsTransferring] = useState(false);
@@ -32,7 +32,7 @@ const DefiEd25519: React.FC<DefiEd25519Props> = ({ walletAddress, setView }) => 
     const fetchBalanceAndLimit = async () => {
       if (swigAddress && selectedRole) {
         try {
-          const connection = new Connection("http://localhost:8899", "confirmed");
+          const connection = await getConnection();
           const balanceInLamports = await connection.getBalance(new PublicKey(swigAddress));
           const balanceInSol = balanceInLamports / LAMPORTS_PER_SOL;
           setWalletBalance(balanceInSol);
@@ -87,7 +87,7 @@ const DefiEd25519: React.FC<DefiEd25519Props> = ({ walletAddress, setView }) => 
     setIsTransferring(true);
 
     try {
-      const connection = new Connection("http://localhost:8899", "confirmed");
+      const connection = await getConnection();
 
       // Get the selected role's keypair from localStorage
       const roleKeypairSecret =
@@ -141,8 +141,14 @@ const DefiEd25519: React.FC<DefiEd25519Props> = ({ walletAddress, setView }) => 
     }
   };
 
-  const getExplorerUrl = (signature: string) => {
+  const getExplorerUrl = (signature: string): string => {
     const baseUrl = "https://explorer.solana.com";
+    const network = localStorage.getItem("swig_network") || "localnet";
+  
+    if (network === "devnet") {
+      return `${baseUrl}/tx/${signature}?cluster=devnet`;
+    }
+    // Default to localnet
     const encodedLocalhost = encodeURIComponent("http://localhost:8899");
     return `${baseUrl}/tx/${signature}?cluster=custom&customUrl=${encodedLocalhost}`;
   };

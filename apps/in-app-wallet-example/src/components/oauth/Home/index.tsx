@@ -6,6 +6,8 @@ interface HomeProps {
   walletAddress: string;
   walletType: "SOLANA" | "EVM";
   setWalletType: (type: "SOLANA" | "EVM") => void;
+  network: "localnet" | "devnet";
+  setNetwork: (network: "localnet" | "devnet") => void;
   onLogout: () => Promise<void>;
 }
 
@@ -14,6 +16,8 @@ export const Home: React.FC<HomeProps> = ({
   walletType,
   setWalletType,
   onLogout,
+  network,
+  setNetwork,
 }) => {
   const [view, setView] = useState<"defi_ed25519" | "swig" | "gas" | "defi_secp" | "bundled">(
     "swig"
@@ -33,12 +37,22 @@ export const Home: React.FC<HomeProps> = ({
     setWalletType(type);
   };
 
+  // Handle network change
+  const handleNetworkChange = (network: "localnet" | "devnet") => {
+    localStorage.setItem("swig_network", network);
+    console.log("Network changed to:", network);
+    setNetwork(network);
+  };
+
   return (
     <SwigProvider walletAddress={walletAddress} walletType={walletType}>
       <HomeContent
         walletAddress={walletAddress}
         walletType={walletType}
         setWalletType={setWalletType}
+        network={network}
+        setNetwork={setNetwork}
+        handleNetworkChange={handleNetworkChange}
         onLogout={onLogout}
         view={view}
         setView={setView}

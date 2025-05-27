@@ -12,7 +12,7 @@ interface SwigDashboardProps {
 }
 
 const SwigDashboard: React.FC<SwigDashboardProps> = () => {
-  const { roles, swigAddress, isAddingRole, getRoles, addRole } = useSwigContext();
+  const { roles, swigAddress, isAddingRole, getRoles, getConnection } = useSwigContext();
 
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [isAddRoleModalOpen, setIsAddRoleModalOpen] = useState(false);
@@ -33,7 +33,7 @@ const SwigDashboard: React.FC<SwigDashboardProps> = () => {
       if (swigAddress) {
         try {
           // Fetch balance
-          const connection = new Connection("http://localhost:8899", "confirmed");
+          const connection = await getConnection();
           const balanceInLamports = await connection.getBalance(new PublicKey(swigAddress));
           const balanceInSol = balanceInLamports / LAMPORTS_PER_SOL;
           setWalletBalance(balanceInSol);

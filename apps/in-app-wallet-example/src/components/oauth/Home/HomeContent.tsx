@@ -11,20 +11,26 @@ interface HomeContentProps {
   walletAddress: string;
   walletType: "SOLANA" | "EVM";
   setWalletType: (type: "SOLANA" | "EVM") => void;
+  network: "localnet" | "devnet";
+  setNetwork: (network: "localnet" | "devnet") => void;
   onLogout: () => Promise<void>;
   view: "defi_ed25519" | "swig" | "gas" | "defi_secp" | "bundled";
   setView: (view: "defi_ed25519" | "swig" | "gas" | "defi_secp" | "bundled") => void;
   handleWalletTypeChange: (type: "SOLANA" | "EVM") => void;
+  handleNetworkChange: (network: "localnet" | "devnet") => void;
 }
 
 export const HomeContent: React.FC<HomeContentProps> = ({
   walletAddress,
   walletType,
   setWalletType,
+  network,
+  setNetwork,
   onLogout,
   view,
   setView,
   handleWalletTypeChange,
+  handleNetworkChange
 }) => {
   const { swigAddress } = useSwigContext();
 
@@ -61,21 +67,40 @@ export const HomeContent: React.FC<HomeContentProps> = ({
             )}
           </Tabs>
 
-          {/* Wallet Type Dropdown - Only show if no Swig account exists */}
+          {/* Wallet Type Dropdown + network selection - Only show if no Swig account exists */}
           {!swigAddress && (
-            <div className="mt-2 sm:mt-0">
-              <label htmlFor="walletType" className="sr-only">
-                Wallet Type
-              </label>
-              <select
-                id="walletType"
-                value={walletType}
-                onChange={(e) => handleWalletTypeChange(e.target.value as "SOLANA" | "EVM")}
-                className="border border-gray-300 rounded p-1 text-sm"
-              >
-                <option value="SOLANA">Solana Wallet</option>
-                <option value="EVM">EVM Wallet</option>
-              </select>
+            <div className="mt-2 sm:mt-0 flex items-center gap-2">
+              {/* Wallet Type Dropdown */}
+              <div>
+                <label htmlFor="walletType" className="sr-only">
+                  Wallet Type
+                </label>
+                <select
+                  id="walletType"
+                  value={walletType}
+                  onChange={(e) => handleWalletTypeChange(e.target.value as "SOLANA" | "EVM")}
+                  className="border border-gray-300 rounded p-1 text-sm"
+                >
+                  <option value="SOLANA">Solana Wallet</option>
+                  <option value="EVM">EVM Wallet</option>
+                </select>
+              </div>
+
+              {/* Network Dropdown */}
+              <div>
+                <label htmlFor="network" className="sr-only">
+                  Network
+                </label>
+                <select
+                  id="network"
+                  value={network}
+                  onChange={(e) => handleNetworkChange(e.target.value as "localnet" | "devnet")}
+                  className="border border-gray-300 rounded p-1 text-sm"
+                >
+                  <option value="localnet">Localnet</option>
+                  <option value="devnet">Devnet</option>
+                </select>
+              </div>
             </div>
           )}
         </div>

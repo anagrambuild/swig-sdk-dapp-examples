@@ -14,7 +14,7 @@ const DEFAULT_RECIPIENT_1 = "BKV7zy1Q74pyk3eehMrVQeau9pj2kEp6k36RZwFTFdHk";
 const DEFAULT_RECIPIENT_2 = "HaN2KEjyMxHsgCUBXjW3ahyqHD5dyuULd4tEPBbwZx4S";
 
 const BundledTransactions: React.FC<BundledTransactionsProps> = ({ setView }) => {
-  const { roles, swigAddress } = useSwigContext();
+  const { roles, swigAddress, getConnection } = useSwigContext();
 
   // Role selection state
   const [selectedRole, setSelectedRole] = useState<string>("");
@@ -56,7 +56,7 @@ const BundledTransactions: React.FC<BundledTransactionsProps> = ({ setView }) =>
     const fetchBalanceAndLimit = async () => {
       if (swigAddress && selectedRole) {
         try {
-          const connection = new Connection("http://localhost:8899", "confirmed");
+          const connection = await getConnection();
 
           // Get wallet balance
           const balanceInLamports = await connection.getBalance(new PublicKey(swigAddress));
@@ -87,8 +87,14 @@ const BundledTransactions: React.FC<BundledTransactionsProps> = ({ setView }) =>
   const totalAmount = (amount1 ? parseFloat(amount1) : 0) + (amount2 ? parseFloat(amount2) : 0);
 
   // Helper function to get explorer URL
-  const getExplorerUrl = (signature: string) => {
+  const getExplorerUrl = (signature: string): string => {
     const baseUrl = "https://explorer.solana.com";
+    const network = localStorage.getItem("swig_network") || "localnet";
+  
+    if (network === "devnet") {
+      return `${baseUrl}/tx/${signature}?cluster=devnet`;
+    }
+    // Default to localnet
     const encodedLocalhost = encodeURIComponent("http://localhost:8899");
     return `${baseUrl}/tx/${signature}?cluster=custom&customUrl=${encodedLocalhost}`;
   };
@@ -156,7 +162,7 @@ const BundledTransactions: React.FC<BundledTransactionsProps> = ({ setView }) =>
     setIsProcessing(true);
 
     try {
-      const connection = new Connection("http://localhost:8899", "confirmed");
+      const connection = await getConnection();
 
       // Get the role keypair from localStorage
       const roleKeypairSecret =
