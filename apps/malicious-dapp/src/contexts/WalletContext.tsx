@@ -5,11 +5,6 @@ import {
   useWallet as useSolanaWallet,
 } from "@solana/wallet-adapter-react";
 import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
-import {
-  PhantomWalletAdapter,
-  SolflareWalletAdapter,
-  // Add other wallet adapters as needed
-} from "@solana/wallet-adapter-wallets";
 import { clusterApiUrl, Connection } from "@solana/web3.js";
 
 // Define your own wallet context type
@@ -29,23 +24,13 @@ const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
 // Create a wallet provider component
 export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Set up wallet adapters
-  const walletAdapters = useMemo(
-    () => [
-      new PhantomWalletAdapter(),
-      new SolflareWalletAdapter(),
-      // Add other wallet adapters here
-    ],
-    []
-  );
-
   // Use Solana network
   const network = WalletAdapterNetwork.Devnet;
   const endpoint = useMemo(() => clusterApiUrl(network), [network]);
 
   return (
     <ConnectionProvider endpoint={endpoint}>
-      <SolanaWalletProvider wallets={walletAdapters} autoConnect>
+      <SolanaWalletProvider wallets={[]} autoConnect>
         <WalletContextWrapper>{children}</WalletContextWrapper>
       </SolanaWalletProvider>
     </ConnectionProvider>
