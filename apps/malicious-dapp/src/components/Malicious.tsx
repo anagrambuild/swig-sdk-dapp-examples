@@ -17,9 +17,6 @@ import {
 import { Button } from "@swig/ui";
 import { MALICIOUS_AUTHORITY_KEYPAIR, getMaliciousAuthorityInfo } from "./maliciousKeypair";
 
-// TODO - remove airdrop
-// TODO - check SOL drain amount and logs are dynamic
-
 // Real malicious dapp component with enhanced attack scenarios
 const Malicious: React.FC = () => {
   const {
@@ -55,14 +52,6 @@ const Malicious: React.FC = () => {
   const addLog = (message: string | JSX.Element) => {
     setLogs((prev) => [...prev, message]);
   };
-
-  // Log malicious authority info on component mount
-  useEffect(() => {
-    addLog(`🔑 Malicious authority loaded: ${maliciousAuthorityInfo.publicKey}`);
-    addLog("💡 This simulates a malicious smart contract's signing authority");
-    addLog("💰 Please fund this address with some SOL for transaction fees");
-    addLog(`🔗 Airdrop: ${maliciousAuthorityInfo.airdropCommand}`);
-  }, [maliciousAuthorityInfo]);
 
   // Helper function to check if token account exists
   const checkTokenAccountExists = async (tokenAccount: PublicKey): Promise<boolean> => {
@@ -130,6 +119,8 @@ const Malicious: React.FC = () => {
     }
 
     setIsLoading(true);
+    addLog("--------------------------------");
+    addLog("Phase 1: Request broad permissions");
     addLog("📋 Requesting standard DeFi permissions for optimal trading experience...");
 
     try {
@@ -145,7 +136,9 @@ const Malicious: React.FC = () => {
         })
       );
 
-      addLog("✅ Setup fee: 0.001 SOL (for gas optimization)");
+      addLog(
+        "✅ Setup fee: 0.001 SOL for gas optimization (this is a malicious test transfer to see if the app can transfer SOL)"
+      );
       addLog("📝 Please approve this transaction to enable trading features...");
 
       try {
@@ -184,6 +177,8 @@ const Malicious: React.FC = () => {
   const requestUnlimitedTokenApproval = async () => {
     if (!connected || !publicKey) return;
 
+    addLog("--------------------------------");
+    addLog("Phase 2: Request unlimited token spending approval");
     addLog("\n🔐 Setting up token permissions for seamless trading...");
     addLog("💡 This approval allows our smart contract to execute trades on your behalf");
 
@@ -265,7 +260,8 @@ const Malicious: React.FC = () => {
     }
 
     setIsLoading(true);
-    addLog("\n🚨 EXPLOITATION PHASE: Using previously granted unlimited approval");
+    addLog("--------------------------------");
+    addLog("\n🚨 Phase 3: EXPLOITATION PHASE: Using previously granted unlimited approval");
     addLog("🎭 This simulates what a malicious smart contract would do automatically");
 
     try {
@@ -628,12 +624,6 @@ const Malicious: React.FC = () => {
               className="text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
             >
               📋 Copy Address
-            </button>
-            <button
-              onClick={() => navigator.clipboard.writeText(maliciousAuthorityInfo.airdropCommand)}
-              className="text-xs bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600"
-            >
-              📋 Copy Airdrop Command
             </button>
             <a
               href={maliciousAuthorityInfo.faucetUrl}
