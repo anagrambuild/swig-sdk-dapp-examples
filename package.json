@@ -12,6 +12,7 @@
     "dev:swig-native": "turbo run dev --filter=@swig/swig-native-dapp",
     "dev:in-app-wallet": "turbo run dev --filter=@swig/in-app-wallet-example",
     "dev:para-modal": "turbo run dev --filter=@swig/para-modal-example",
+    "dev:malicious-dapp": "turbo run dev --filter=@swig/malicious-dapp",
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
