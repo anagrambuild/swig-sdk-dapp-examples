@@ -1,7 +1,7 @@
 import { Button, Select } from "@swig/ui";
 import { useSwigContext } from "../../../context/SwigContext";
 import { useState, useEffect } from "react";
-import { Connection, LAMPORTS_PER_SOL, PublicKey, SystemProgram, Keypair } from "@solana/web3.js";
+import { LAMPORTS_PER_SOL, PublicKey, SystemProgram, Keypair } from "@solana/web3.js";
 import { Ed25519Authority, fetchSwig } from "@swig-wallet/classic";
 import { signTransaction } from "../../../utils/swig/transactions";
 
@@ -22,6 +22,7 @@ const DefiEd25519: React.FC<DefiEd25519Props> = ({ walletAddress, setView }) => 
   const [clientError, setClientError] = useState<string | null>(null);
   const [sdkError, setSdkError] = useState<string | null>(null);
   const [txSignature, setTxSignature] = useState<string | null>(null);
+  const [txFailed, setTxFailed] = useState(false);
 
   const roleOptions = roles.map((role, index) => ({
     value: index.toString(),
@@ -85,6 +86,7 @@ const DefiEd25519: React.FC<DefiEd25519Props> = ({ walletAddress, setView }) => 
     }
 
     setIsTransferring(true);
+    setTxFailed(false); // Reset txFailed on new attempt
 
     try {
       const connection = await getConnection();
@@ -131,11 +133,35 @@ const DefiEd25519: React.FC<DefiEd25519Props> = ({ walletAddress, setView }) => 
         [transferIx]
       );
 
-      console.log("Transaction sent and confirmed with signature:", signature);
+      console.log("Sent tx:", signature);
+      const confirmation = await connection.confirmTransaction(signature, "confirmed");
+      console.log("Confirmation result:", confirmation);
+
+      // Wait for confirmation and check status
+      const { value: status } = await connection.getSignatureStatus(signature);
+      // If not confirmed, fallback to getTransaction for more details
+      let txError = null;
+      if (!status || status.err) {
+        txError = status?.err || "Unknown error";
+      } else {
+        // Optionally, you can use getTransaction for more details
+        const txResult = await connection.getTransaction(signature, { commitment: "confirmed" });
+        if (txResult?.meta?.err) {
+          txError = txResult.meta.err;
+        }
+      }
+
       setTxSignature(signature);
+      if (txError) {
+        setTxFailed(true);
+        setSdkError(typeof txError === "string" ? txError : JSON.stringify(txError));
+      } else {
+        setTxFailed(false);
+      }
     } catch (error) {
       console.error("Transfer failed:", error);
       setSdkError((error as Error).message);
+      setTxFailed(true);
     } finally {
       setIsTransferring(false);
     }
@@ -144,7 +170,7 @@ const DefiEd25519: React.FC<DefiEd25519Props> = ({ walletAddress, setView }) => 
   const getExplorerUrl = (signature: string): string => {
     const baseUrl = "https://explorer.solana.com";
     const network = localStorage.getItem("swig_network") || "localnet";
-  
+
     if (network === "devnet") {
       return `${baseUrl}/tx/${signature}?cluster=devnet`;
     }
@@ -255,8 +281,8 @@ const DefiEd25519: React.FC<DefiEd25519Props> = ({ walletAddress, setView }) => 
                   </div>
                 )}
 
-                {/* SDK Error with Transaction Link */}
-                {sdkError && (
+                {/* SDK Error with Transaction Link (takes precedence if present) */}
+                {sdkError ? (
                   <div className="p-3 bg-red-50 border border-red-200 rounded-md">
                     <p className="text-sm font-medium text-red-800">Transaction Error:</p>
                     <p className="text-sm text-red-600">{sdkError}</p>
@@ -271,21 +297,31 @@ const DefiEd25519: React.FC<DefiEd25519Props> = ({ walletAddress, setView }) => 
                       </a>
                     )}
                   </div>
-                )}
-
-                {/* Success with Transaction Link */}
-                {txSignature && !sdkError && !isTransferring && (
-                  <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-                    <p className="text-sm font-medium text-green-800">Transaction successful!</p>
-                    <a
-                      href={getExplorerUrl(txSignature)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:text-blue-800 underline block mt-2"
+                ) : (
+                  txSignature &&
+                  !isTransferring && (
+                    <div
+                      className={`p-3 border rounded-md ${
+                        txFailed ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200"
+                      }`}
                     >
-                      View successful transaction on Solana Explorer
-                    </a>
-                  </div>
+                      <p
+                        className={`text-sm font-medium ${
+                          txFailed ? "text-red-800" : "text-green-800"
+                        }`}
+                      >
+                        {txFailed ? "Transaction failed." : "Transaction successful!"}
+                      </p>
+                      <a
+                        href={getExplorerUrl(txSignature)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:text-blue-800 underline block mt-2"
+                      >
+                        View transaction on Solana Explorer
+                      </a>
+                    </div>
+                  )
                 )}
               </div>
             </div>
