@@ -64,10 +64,8 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
   const getConnection = async (): Promise<Connection> => {
     const network = localStorage.getItem("swig_network") || "localnet";
     const endpoint =
-      network === "devnet"
-        ? "https://api.devnet.solana.com"
-        : "http://localhost:8899";
-  
+      network === "devnet" ? "https://api.devnet.solana.com" : "http://localhost:8899";
+
     //console.log(`[getConnection] Using ${network} RPC: ${endpoint}`);
     return new Connection(endpoint, "confirmed");
   };
@@ -210,7 +208,7 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
 
         const instOptions: InstructionDataOptions = {
           currentSlot: BigInt(await connection.getSlot("finalized")),
-          signingFn: async (msg: Uint8Array): Promise<Uint8Array> => {
+          signingFn: async (msg: Uint8Array): Promise<{ signature: Uint8Array }> => {
             if (!walletAddress) throw new Error("No wallet address provided");
 
             const base64Msg = Buffer.from(msg).toString("base64");
@@ -235,7 +233,7 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
 
               console.log("[transfer] Got 65-byte signature via Para");
               sigBytes[64] = sigBytes[64] ? 28 : 27;
-              return sigBytes;
+              return { signature: sigBytes };
             } else {
               throw new Error("Signature denied or not returned from Para");
             }
@@ -308,7 +306,7 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
     getRoles,
     getConnection,
     addRole,
-  };  
+  };
 
   return <SwigContext.Provider value={value}>{children}</SwigContext.Provider>;
 }
