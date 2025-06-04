@@ -27,7 +27,10 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
-.yarn
+.yarn/*
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
 .yarn/install-state.gz
 # turbo
 .turbo
