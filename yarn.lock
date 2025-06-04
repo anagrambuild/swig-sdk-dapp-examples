@@ -3514,32 +3514,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@swig-wallet/classic@npm:0.2.0-beta.2":
-  version: 0.2.0-beta.2
-  resolution: "@swig-wallet/classic@npm:0.2.0-beta.2"
-  dependencies:
-    "@noble/curves": "npm:^1.8.2"
-    "@solana/kit": "npm:^2.1.0"
-    "@swig-wallet/coder": "workspace:*"
-  peerDependencies:
-    "@solana/web3.js": ^1.98.0
-  checksum: 10c0/f6f2311283f971a81893416fa1f3a9346854c969290db7a886450a6de0c1d3bea0df1d646f942d5ac9522410f3226f7eb42451d700040ca6163525896cab7823
-  languageName: node
-  linkType: hard
-
-"@swig-wallet/classic@npm:0.2.0-beta.3":
-  version: 0.2.0-beta.3
-  resolution: "@swig-wallet/classic@npm:0.2.0-beta.3"
-  dependencies:
-    "@noble/curves": "npm:^1.8.2"
-    "@solana/kit": "npm:^2.1.0"
-    "@swig-wallet/coder": "workspace:*"
-  peerDependencies:
-    "@solana/web3.js": ^1.98.0
-  checksum: 10c0/8addc397937aebbe99fb0cec135bf61d8d5819a120c0fd4a92744ccf92ba7410e5c1963511cc7654b98b59cada8588f17317f890a58a4167cb08f364b1c6cd1d
-  languageName: node
-  linkType: hard
-
 "@swig-wallet/classic@npm:0.2.0-beta.4":
   version: 0.2.0-beta.4
   resolution: "@swig-wallet/classic@npm:0.2.0-beta.4"
@@ -3581,7 +3555,7 @@ __metadata:
     "@heroicons/react": "npm:^2.2.0"
     "@solana/web3.js": "npm:^1.78.0"
     "@swig-wallet/classic": "npm:0.2.0-beta.4"
-    "@swig-wallet/coder": "npm:0.2.0-beta.4"
+    "@swig-wallet/coder": "npm:0.2.0-beta.2"
     "@swig/eslint-config-custom": "workspace:*"
     "@swig/tsconfig": "workspace:*"
     "@swig/ui": "workspace:*"
@@ -3632,8 +3606,8 @@ __metadata:
     "@solana/wallet-adapter-react-ui": "npm:^0.9.38"
     "@solana/wallet-adapter-wallets": "npm:^0.19.36"
     "@solana/web3.js": "npm:^1.98.2"
-    "@swig-wallet/classic": "npm:0.2.0-beta.3"
-    "@swig-wallet/coder": "npm:0.2.0-beta.3"
+    "@swig-wallet/classic": "npm:0.2.0-beta.4"
+    "@swig-wallet/coder": "npm:0.2.0-beta.2"
     "@swig/eslint-config-custom": "workspace:*"
     "@swig/tsconfig": "workspace:*"
     "@swig/ui": "workspace:*"
@@ -3661,8 +3635,8 @@ __metadata:
     "@getpara/web-sdk": "npm:^1.11.0"
     "@heroicons/react": "npm:^2.2.0"
     "@solana/web3.js": "npm:^1.98.2"
-    "@swig-wallet/classic": "npm:0.2.0-beta.3"
-    "@swig-wallet/coder": "npm:0.2.0-beta.3"
+    "@swig-wallet/classic": "npm:0.2.0-beta.4"
+    "@swig-wallet/coder": "npm:0.2.0-beta.2"
     "@swig/eslint-config-custom": "workspace:*"
     "@swig/tsconfig": "workspace:*"
     "@swig/ui": "workspace:*"
@@ -11654,7 +11628,7 @@ __metadata:
   dependencies:
     "@noble/curves": "npm:^1.9.1"
     "@solana/spl-token": "npm:^0.4.13"
-    "@swig-wallet/classic": "npm:0.2.0-beta.2"
+    "@swig-wallet/classic": "npm:0.2.0-beta.4"
     "@types/chrome": "npm:^0.0.309"
     prettier: "npm:^2.8.8"
     react-icons: "npm:^5.5.0"
