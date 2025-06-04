@@ -3540,6 +3540,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@swig-wallet/classic@npm:0.2.0-beta.4":
+  version: 0.2.0-beta.4
+  resolution: "@swig-wallet/classic@npm:0.2.0-beta.4"
+  dependencies:
+    "@noble/curves": "npm:^1.8.2"
+    "@solana/kit": "npm:^2.1.0"
+    "@swig-wallet/coder": "npm:^0.2.0-beta.2"
+  peerDependencies:
+    "@solana/web3.js": ^1.98.0
+  checksum: 10c0/3feec51978d3691a055de69e86bf8cdc0a16c6d78d27ebf15b0d8b3cdae9be5f09e310af53689c0127b8452ae69c28e55a916a4aafb9ca66f7d9cc2eb4384729
+  languageName: node
+  linkType: hard
+
 "@swig-wallet/coder@npm:0.2.0-beta.2":
   version: 0.2.0-beta.2
   resolution: "@swig-wallet/coder@npm:0.2.0-beta.2"
@@ -3567,8 +3580,8 @@ __metadata:
     "@getpara/web-sdk": "npm:^1.11.0"
     "@heroicons/react": "npm:^2.2.0"
     "@solana/web3.js": "npm:^1.78.0"
-    "@swig-wallet/classic": "npm:0.2.0-beta.2"
-    "@swig-wallet/coder": "npm:0.2.0-beta.2"
+    "@swig-wallet/classic": "npm:0.2.0-beta.4"
+    "@swig-wallet/coder": "npm:0.2.0-beta.4"
     "@swig/eslint-config-custom": "workspace:*"
     "@swig/tsconfig": "workspace:*"
     "@swig/ui": "workspace:*"
@@ -12110,11 +12123,11 @@ __metadata:
 
 "typescript@patch:typescript@npm%3A^5.0.4#optional!builtin<compat/typescript>":
   version: 5.8.3
-  resolution: "typescript@patch:typescript@npm%3A5.8.3#optional!builtin<compat/typescript>::version=5.8.3&hash=5adc0c"
+  resolution: "typescript@patch:typescript@npm%3A5.8.3#optional!builtin<compat/typescript>::version=5.8.3&hash=5786d5"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 10c0/92ea03509e06598948559ddcdd8a4ae5a7ab475766d5589f1b796f5731b3d631a4c7ddfb86a3bd44d58d10102b132cd4b4994dda9b63e6273c66d77d6a271dbd
+  checksum: 10c0/39117e346ff8ebd87ae1510b3a77d5d92dae5a89bde588c747d25da5c146603a99c8ee588c7ef80faaf123d89ed46f6dbd918d534d641083177d5fac38b8a1cb
   languageName: node
   linkType: hard
 
