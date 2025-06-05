@@ -18,6 +18,7 @@ import {
 import { hexToBytes } from "@noble/curves/abstract/utils";
 import { para } from "../../../client/para";
 import { getEvmWalletPublicKey } from "../../../utils/evm/publickey";
+import React from "react";
 
 interface DefiProps {
   walletAddress?: string;

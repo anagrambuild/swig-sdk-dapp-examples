@@ -1,4 +1,7 @@
 {
+  "compilerOptions": {
+    "jsx": "react"
+  },
   "extends": "@swig/tsconfig/react.json",
   "include": ["src"],
   "exclude": ["node_modules"]
