@@ -96,7 +96,16 @@ export const AppContent: React.FC = () => {
   }, [wallet?.address]);
 
   return (
-    <div className="min-h-screen flex justify-center p-4">
+    <div className="min-h-screen flex flex-col justify-start items-center p-4">
+      <div className="flex justify-end w-full">
+        <a
+          href="https://github.com/anagrambuild/swig-sdk-dapp-examples/tree/main/apps/para-modal-example"
+          target="_blank"
+          className="text-sm text-blue-500 hover:text-blue-700"
+        >
+          View on Github
+        </a>
+      </div>
       <div className="max-w-md w-full space-y-6 p-8">
         <div className="text-center">
           <h2 className="text-3xl font-extrabold text-gray-900">Para Solana Web3.js Example</h2>
