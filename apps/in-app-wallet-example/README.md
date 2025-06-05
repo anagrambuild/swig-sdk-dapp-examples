@@ -1,6 +1,6 @@
 # Para Swig UI
 
-This is an example of how to use swig with Para's embedded wallet solution. The example is currently on localnet. We are working on implementing the examples on devnet as well. We will update this guide as we make progress.
+This is an example of how to use swig with Para's embedded wallet solution. The example is currently on localnet and devnet, but there are issues with the airdrop limits in devnet. We are working on a solution and will update this as we make progress
 
 ## Prerequisites
 
