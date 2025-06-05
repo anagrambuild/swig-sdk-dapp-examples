@@ -73,7 +73,7 @@ The app demonstrates several key Para integration features:
 - Para Solana Web3.js Integration (`@getpara/solana-web3.js-v1-integration`)
 - Solana Web3.js
 - Swig Wallet SDK (`@swig-wallet/classic`)
-- Tailwind CSS
+- Tailwind
 
 ## Learn More
 
