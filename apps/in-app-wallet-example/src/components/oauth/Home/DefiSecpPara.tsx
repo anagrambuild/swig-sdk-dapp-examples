@@ -18,6 +18,8 @@ import {
 import { hexToBytes } from "@noble/curves/abstract/utils";
 import { para } from "../../../client/para";
 import { getEvmWalletPublicKey } from "../../../utils/evm/publickey";
+import React from "react";
+import { keccak_256 } from '@noble/hashes/sha3';
 
 interface DefiProps {
   walletAddress?: string;
@@ -132,10 +134,13 @@ const DefiSecpPara: React.FC<DefiProps> = ({ walletAddress, setView }) => {
       // Signing options with Para
       const instOptions: InstructionDataOptions = {
         currentSlot: BigInt(await connection.getSlot("finalized")),
-        signingFn: async (msg: Uint8Array): Promise<Uint8Array> => {
+        signingFn: async (msg: Uint8Array) => {
           if (!walletAddress) throw new Error("No wallet address provided");
 
-          const base64Msg = Buffer.from(msg).toString("base64");
+          //hash msg with keccak256
+          const hashedMsg = keccak_256(msg);
+
+          const base64Msg = Buffer.from(hashedMsg).toString("base64");
           const wallet = await para.findWalletByAddress(walletAddress);
           if (!wallet) throw new Error("Para wallet not found for this address");
 
@@ -144,22 +149,13 @@ const DefiSecpPara: React.FC<DefiProps> = ({ walletAddress, setView }) => {
             messageBase64: base64Msg,
           });
 
-          //console.log("wallet id", wallet.id)
-
           if ("signature" in res) {
-            // decode based on what encoding you used
             let sigBytes = Uint8Array.from(Buffer.from(res.signature, "hex"));
-            console.log("res sig", res.signature);
-            console.log("sigBytes", sigBytes);
-            let _sigBytes = hexToBytes(res.signature);
-            console.log("sigBytes hex", _sigBytes);
             if (sigBytes.length !== 65) {
               throw new Error(`EVM signature must be 65 bytes (got ${sigBytes.length})`);
             }
-
-            console.log("[transfer] Got 65-byte signature via Para");
             sigBytes[64] = sigBytes[64] ? 28 : 27;
-            return sigBytes;
+            return { signature: sigBytes };
           } else {
             throw new Error("Signature denied or not returned from Para");
           }
