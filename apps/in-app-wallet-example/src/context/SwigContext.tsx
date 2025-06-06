@@ -14,7 +14,8 @@ import { createSwigAccount } from "../utils/swig";
 import { hexToBytes } from "@noble/curves/abstract/utils";
 import { getEvmWalletPublicKey } from "../utils/evm/publickey";
 import { createSwigAccountSecpPara } from "../utils/swig/createSwigAccountSecp";
-import { Network } from "@getpara/web-sdk";
+import { keccak_256 } from "@noble/hashes/sha3";
+import React from "react";
 
 interface RoleWithName extends Role {
   name: string;
@@ -64,10 +65,8 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
   const getConnection = async (): Promise<Connection> => {
     const network = localStorage.getItem("swig_network") || "localnet";
     const endpoint =
-      network === "devnet"
-        ? "https://api.devnet.solana.com"
-        : "http://localhost:8899";
-  
+      network === "devnet" ? "https://api.devnet.solana.com" : "http://localhost:8899";
+
     //console.log(`[getConnection] Using ${network} RPC: ${endpoint}`);
     return new Connection(endpoint, "confirmed");
   };
@@ -210,10 +209,13 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
 
         const instOptions: InstructionDataOptions = {
           currentSlot: BigInt(await connection.getSlot("finalized")),
-          signingFn: async (msg: Uint8Array): Promise<Uint8Array> => {
+          signingFn: async (msg: Uint8Array): Promise<{ signature: Uint8Array }> => {
             if (!walletAddress) throw new Error("No wallet address provided");
 
-            const base64Msg = Buffer.from(msg).toString("base64");
+            //keccak256 hash the message
+            const msgHash = keccak_256(msg);
+
+            const base64Msg = Buffer.from(msgHash).toString("base64");
             const wallet = await para.findWalletByAddress(walletAddress);
             if (!wallet) throw new Error("Para wallet not found for this address");
 
@@ -223,19 +225,16 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
             });
 
             if ("signature" in res) {
-              // decode based on what encoding you used
               let sigBytes = Uint8Array.from(Buffer.from(res.signature, "hex"));
-              console.log("res sig", res.signature);
-              console.log("sigBytes", sigBytes);
-              let _sigBytes = hexToBytes(res.signature);
-              console.log("sigBytes hex", _sigBytes);
+
               if (sigBytes.length !== 65) {
                 throw new Error(`EVM signature must be 65 bytes (got ${sigBytes.length})`);
               }
 
-              console.log("[transfer] Got 65-byte signature via Para");
+              // Ensure the signature is in the correct format
               sigBytes[64] = sigBytes[64] ? 28 : 27;
-              return sigBytes;
+
+              return { signature: sigBytes };
             } else {
               throw new Error("Signature denied or not returned from Para");
             }
@@ -308,7 +307,7 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
     getRoles,
     getConnection,
     addRole,
-  };  
+  };
 
   return <SwigContext.Provider value={value}>{children}</SwigContext.Provider>;
 }
