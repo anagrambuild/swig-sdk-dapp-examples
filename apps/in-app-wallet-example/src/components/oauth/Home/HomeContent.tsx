@@ -23,14 +23,12 @@ interface HomeContentProps {
 export const HomeContent: React.FC<HomeContentProps> = ({
   walletAddress,
   walletType,
-  setWalletType,
   network,
-  setNetwork,
   onLogout,
   view,
   setView,
   handleWalletTypeChange,
-  handleNetworkChange
+  handleNetworkChange,
 }) => {
   const { swigAddress } = useSwigContext();
 

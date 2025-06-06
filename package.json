@@ -23,6 +23,7 @@
   "devDependencies": {
     "@types/chrome": "^0.0.309",
     "prettier": "^2.8.8",
+    "rollup-plugin-node-polyfills": "^0.2.1",
     "turbo": "^2.5.3",
     "typescript": "^5.0.4"
   },

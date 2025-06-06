@@ -46,6 +46,15 @@ export const Home: React.FC<HomeProps> = ({
 
   return (
     <SwigProvider walletAddress={walletAddress} walletType={walletType}>
+      <div className="flex justify-end w-full">
+        <a
+          href="https://github.com/anagrambuild/swig-sdk-dapp-examples/tree/main/apps/in-app-wallet-example"
+          target="_blank"
+          className="text-sm text-blue-500 hover:text-blue-700"
+        >
+          View on Github
+        </a>
+      </div>
       <HomeContent
         walletAddress={walletAddress}
         walletType={walletType}
