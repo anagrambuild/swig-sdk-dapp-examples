@@ -20,7 +20,7 @@ const WalletConnect: React.FC = () => {
 
     // This is the Chrome extension ID for your Swig wallet
     // Replace with your actual extension ID
-    const swigExtensionId = 'khnahinkhjfaolcbjaamlopkknpcapgn';
+    const swigExtensionId = 'ngkjcjceookedgnmacgheeblecefegce';
 
     try {
       // Check if chrome.runtime is available
