@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@swig/ui';
 import {
   Connection,
@@ -24,6 +24,43 @@ const TransactionDemo: React.FC = () => {
     success: boolean;
     error?: string;
   } | null>(null);
+  const [balance, setBalance] = useState<number | null>(null);
+  const [isBalanceLoading, setIsBalanceLoading] = useState(false);
+
+  useEffect(() => {
+    if (!publicKey) return;
+
+    const connection = new Connection(SOLANA_RPC_URL);
+    let subscriptionId: number;
+
+    const subscribeToBalance = async () => {
+      try {
+        const pubkey = new PublicKey(publicKey);
+
+        // Initial fetch
+        setIsBalanceLoading(true);
+        const lamports = await connection.getBalance(pubkey);
+        setBalance(lamports / LAMPORTS_PER_SOL);
+        setIsBalanceLoading(false);
+
+        // Subscribe to balance updates
+        subscriptionId = connection.onAccountChange(pubkey, (accountInfo) => {
+          setBalance(accountInfo.lamports / LAMPORTS_PER_SOL);
+        });
+      } catch (e) {
+        console.error('Failed to subscribe to balance:', e);
+        setIsBalanceLoading(false);
+      }
+    };
+
+    subscribeToBalance();
+
+    return () => {
+      if (subscriptionId !== undefined) {
+        connection.removeAccountChangeListener(subscriptionId);
+      }
+    };
+  }, [publicKey]);
 
   const sendTransaction = async () => {
     const lamports = parseFloat(amount) * LAMPORTS_PER_SOL;
@@ -149,10 +186,25 @@ const TransactionDemo: React.FC = () => {
       </div>
 
       {publicKey && (
-        <div className="text-sm text-gray-700">
-          <span className="font-medium">Connected Wallet:</span>{' '}
-          <span className="font-mono break-all text-xs">{publicKey}</span>
-        </div>
+        <>
+          <div className="text-sm text-gray-700">
+            <span className="font-medium">Connected Wallet:</span>{' '}
+            <span className="font-mono break-all text-xs">{publicKey}</span>
+          </div>
+
+          <div className="text-sm text-gray-700 flex items-center justify-between">
+            <div>
+              <span className="font-medium">Wallet Balance:</span>{' '}
+              {isBalanceLoading ? (
+                <span className="text-gray-400">Loading...</span>
+              ) : balance !== null ? (
+                <span className="font-mono">{balance.toFixed(4)} SOL</span>
+              ) : (
+                <span className="text-red-500">Error</span>
+              )}
+            </div>
+          </div>
+        </>
       )}
 
       <Button

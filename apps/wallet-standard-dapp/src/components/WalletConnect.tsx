@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@swig/ui';
 import { useWallet } from '../contexts/WalletContext';
 
-const WalletConnect: React.FC = () => {
+const NavbarWallet: React.FC = () => {
   const {
     wallets,
     selectedWallet,
@@ -13,7 +13,8 @@ const WalletConnect: React.FC = () => {
     disconnectWallet,
   } = useWallet();
 
-  const [showWalletList, setShowWalletList] = useState(false);
+  const [showWalletDropdown, setShowWalletDropdown] = useState(false);
+  const [showConnectedDropdown, setShowConnectedDropdown] = useState(false);
 
   const openSwigExtension = () => {
     const swigExtensionId = 'ngkjcjceookedgnmacgheeblecefegce';
@@ -34,13 +35,13 @@ const WalletConnect: React.FC = () => {
   };
 
   const handleConnectClick = () => {
-    setShowWalletList(!showWalletList);
+    setShowWalletDropdown(!showWalletDropdown);
   };
 
   const handleWalletSelect = async (wallet: any) => {
     try {
       await connectWallet(wallet);
-      setShowWalletList(false);
+      setShowWalletDropdown(false);
     } catch (error) {
       console.error('Failed to connect wallet:', error);
     }
@@ -48,76 +49,156 @@ const WalletConnect: React.FC = () => {
 
   const handleDisconnect = () => {
     disconnectWallet();
+    setShowWalletDropdown(false);
+    setShowConnectedDropdown(false);
+  };
+
+  const truncateAddress = (address: string | null) => {
+    if (!address) return '';
+    return `${address.slice(0, 4)}...${address.slice(-4)}`;
   };
 
   return (
-    <div className="max-w-md mx-auto p-6 space-y-6 bg-white rounded-none">
-      <h2 className="text-2xl font-semibold text-gray-900 text-center">Wallet Connection</h2>
-
+    <div className="relative flex items-center space-x-3">
       {!connected ? (
-        <div className="space-y-4">
-          <Button onClick={handleConnectClick} disabled={connecting} className="w-full">
-            {connecting ? 'Connecting...' : 'Connect Wallet'}
-          </Button>
-
-          {showWalletList && wallets && wallets.length > 0 && (
-            <div className="w-full border border-gray-200 bg-gray-50 rounded p-4">
-              <h3 className="text-lg font-medium mb-3 text-gray-800">Select a Wallet</h3>
-              <ul className="space-y-2">
-                {wallets.map((wallet, index) => (
-                  <li key={wallet.adapter?.name || `wallet-${index}`}>
-                    <button
-                      className="w-full text-left px-4 py-2 rounded hover:bg-gray-100 flex items-center transition"
-                      onClick={() => handleWalletSelect(wallet)}
-                    >
-                      {wallet.adapter?.icon && (
-                        <img
-                          src={wallet.adapter.icon}
-                          alt={`${wallet.adapter.name} icon`}
-                          className="w-5 h-5 mr-3"
-                        />
-                      )}
-                      <span className="text-sm text-gray-800">
-                        {wallet.adapter?.name || 'Unknown Wallet'}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {showWalletList && (!wallets || wallets.length === 0) && (
-            <div className="w-full border border-gray-200 bg-gray-50 rounded p-4 text-sm text-gray-600">
-              No compatible wallets found. Please install a Solana wallet extension that supports the Wallet Standard.
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
-            <div className="text-sm text-gray-700">
-              <span className="font-medium">Connected:</span>{' '}
-              <span className="font-mono text-xs break-all">{publicKey}</span>
-            </div>
-            <Button variant="secondary" onClick={handleDisconnect}>
-              Disconnect
+        <>
+          <div className="relative">
+            <Button 
+              onClick={handleConnectClick} 
+              disabled={connecting}
+              variant="primary"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {connecting ? 'Connecting...' : 'Connect Wallet'}
             </Button>
+
+            {showWalletDropdown && (
+              <div className="absolute right-0 mt-2 w-64 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+                <div className="p-4">
+                  <h3 className="text-sm font-medium text-gray-900 mb-3">Select a Wallet</h3>
+                  
+                  {wallets && wallets.length > 0 ? (
+                    <ul className="space-y-2">
+                      {wallets.map((wallet, index) => (
+                        <li key={wallet.adapter?.name || `wallet-${index}`}>
+                          <button
+                            className="w-full text-left px-3 py-2 rounded hover:bg-gray-50 flex items-center transition text-sm"
+                            onClick={() => handleWalletSelect(wallet)}
+                          >
+                            {wallet.adapter?.icon && (
+                              <img
+                                src={wallet.adapter.icon}
+                                alt={`${wallet.adapter.name} icon`}
+                                className="w-4 h-4 mr-3"
+                              />
+                            )}
+                            <span className="text-gray-800">
+                              {wallet.adapter?.name || 'Unknown Wallet'}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div className="text-sm text-gray-600 py-2">
+                      No compatible wallets found. Please install a Solana wallet extension.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <Button 
+            onClick={openSwigExtension} 
+            variant="secondary"
+            className="text-sm"
+          >
+            Open Swig
+          </Button>
+        </>
+      ) : (
+        <div className="relative">
+          <div 
+            className="flex items-center space-x-3 cursor-pointer p-2 rounded hover:bg-gray-50 transition"
+            onClick={() => setShowConnectedDropdown(!showConnectedDropdown)}
+          >
+            <div className="text-sm text-gray-700">
+              <span className="hidden sm:inline font-medium">Connected: </span>
+              <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
+                {truncateAddress(publicKey)}
+              </span>
+            </div>
+            
+            {selectedWallet && (
+              <div className="hidden md:flex items-center text-xs text-gray-500">
+                {selectedWallet.adapter?.icon && (
+                  <img
+                    src={selectedWallet.adapter.icon}
+                    alt={`${selectedWallet.adapter.name} icon`}
+                    className="w-4 h-4 mr-1"
+                  />
+                )}
+                {selectedWallet.adapter?.name}
+              </div>
+            )}
+            
+            {/* Dropdown chevron */}
+            <svg 
+              className={`w-4 h-4 text-gray-500 transition-transform ${showConnectedDropdown ? 'rotate-180' : ''}`}
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
           </div>
 
-          {selectedWallet && (
-            <div className="text-sm text-gray-600">
-              Wallet: {selectedWallet.adapter?.name || 'Unknown Wallet'}
+          {/* Connected wallet dropdown */}
+          {showConnectedDropdown && (
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+              <div className="py-2">
+                <button
+                  onClick={() => {
+                    openSwigExtension();
+                    setShowConnectedDropdown(false);
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center transition"
+                >
+                  <svg className="w-4 h-4 mr-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                  Open Swig Extension
+                </button>
+                
+                <div className="border-t border-gray-100 my-1"></div>
+                
+                <button
+                  onClick={handleDisconnect}
+                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center transition"
+                >
+                  <svg className="w-4 h-4 mr-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  Disconnect Wallet
+                </button>
+              </div>
             </div>
           )}
         </div>
+      
       )}
-
-      <Button onClick={openSwigExtension} variant="secondary" className="w-full">
-        Open Swig Extension
-      </Button>
+      {(showWalletDropdown || showConnectedDropdown) && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => {
+            setShowWalletDropdown(false);
+            setShowConnectedDropdown(false);
+          }}
+        />
+      )}
     </div>
   );
 };
 
-export default WalletConnect;
+export default NavbarWallet;
