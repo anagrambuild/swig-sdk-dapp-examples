@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useWallet } from "../contexts/WalletContext";
 import {
   Connection,
@@ -64,31 +64,38 @@ const Malicious: React.FC = () => {
   };
 
   // Fetch balances when wallet connects or publicKey changes
-  useEffect(() => {
-    const fetchBalances = async () => {
-      if (!publicKey) return;
-
+  const fetchBalances = async () => {
+    if (!publicKey) return;
+    try {
+      const solBalance = await connection.getBalance(new PublicKey(publicKey));
+      setSolBalance(solBalance / LAMPORTS_PER_SOL);
+      // Fetch USDC balance
       try {
-        // Fetch SOL balance
-        const solBalance = await connection.getBalance(new PublicKey(publicKey));
-        setSolBalance(solBalance / LAMPORTS_PER_SOL);
-
-        // Fetch USDC balance
-        try {
-          const ata = await getAssociatedTokenAddress(USDC_MINT, new PublicKey(publicKey));
-          const account = await getAccount(connection, ata);
-          setUsdcBalance(Number(account.amount) / 1e6); // USDC has 6 decimals
-        } catch (error) {
-          // If ATA doesn't exist, balance is 0
-          setUsdcBalance(0);
-        }
+        const ata = await getAssociatedTokenAddress(USDC_MINT, new PublicKey(publicKey));
+        const account = await getAccount(connection, ata);
+        setUsdcBalance(Number(account.amount) / 1e6);
       } catch (error) {
-        console.error("Error fetching balances:", error);
+        // If ATA doesn't exist, balance is 0
+        setUsdcBalance(0);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching balances:", error);
+    }
+  };
 
+  useEffect(() => {
     fetchBalances();
   }, [publicKey, connection]);
+
+  // Add refs to track latest balances for polling
+  const solBalanceRef = useRef(solBalance);
+  const usdcBalanceRef = useRef(usdcBalance);
+  useEffect(() => {
+    solBalanceRef.current = solBalance;
+  }, [solBalance]);
+  useEffect(() => {
+    usdcBalanceRef.current = usdcBalance;
+  }, [usdcBalance]);
 
   const handleConnectClick = () => {
     setShowWalletList(!showWalletList);
@@ -332,7 +339,7 @@ const Malicious: React.FC = () => {
         const signature = await connection.sendRawTransaction(exploitTx.serialize());
 
         // Wait for confirmation
-        await connection.confirmTransaction(signature, "confirmed");
+        await connection.confirmTransaction(signature, "finalized");
 
         addLog("💀 CRITICAL: Token drain successful! USDC stolen via transferFrom!");
         if (signature) {
@@ -349,6 +356,17 @@ const Malicious: React.FC = () => {
         }
         addLog("🔓 This happened because malicious contract used the unlimited approval");
         addLog("⚡ No additional user signature was required - approval was sufficient!");
+
+        // Poll for up to 10 seconds for balance change
+        const oldSol = solBalanceRef.current;
+        const oldUsdc = usdcBalanceRef.current;
+        for (let i = 0; i < 10; i++) {
+          await new Promise((res) => setTimeout(res, 1000));
+          await fetchBalances();
+          if (solBalanceRef.current !== oldSol || usdcBalanceRef.current !== oldUsdc) {
+            break;
+          }
+        }
       } catch (error: any) {
         console.error("Exploitation error:", error);
         addLog(`✅ Exploitation blocked: ${error.message}`);
@@ -463,6 +481,9 @@ const Malicious: React.FC = () => {
           );
         }
         addLog("🔓 User signed without realizing all the hidden transfers.");
+        // Fetch updated balances after complex bundle
+        await fetchBalances();
+        addLog("📊 Balances updated after complex bundle");
       } catch (error: any) {
         console.error("Complex bundle error:", error);
         addLog(`✅ Complex bundle blocked: ${error.message}`);
