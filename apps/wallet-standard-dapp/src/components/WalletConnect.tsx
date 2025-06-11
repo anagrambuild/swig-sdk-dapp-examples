@@ -16,24 +16,6 @@ const NavbarWallet: React.FC = () => {
   const [showWalletDropdown, setShowWalletDropdown] = useState(false);
   const [showConnectedDropdown, setShowConnectedDropdown] = useState(false);
 
-  const openSwigExtension = () => {
-    const swigExtensionId = 'ngkjcjceookedgnmacgheeblecefegce';
-
-    try {
-      if (window.chrome && window.chrome.runtime) {
-        window.chrome.runtime.sendMessage(swigExtensionId, {
-          action: 'open_popup',
-        });
-        console.log('Extension open request sent');
-      } else {
-        throw new Error('Chrome extension API not available');
-      }
-    } catch (error) {
-      console.error('Error opening extension:', error);
-      window.open(`chrome-extension://${swigExtensionId}/index.html`, '_blank');
-    }
-  };
-
   const handleConnectClick = () => {
     setShowWalletDropdown(!showWalletDropdown);
   };
@@ -108,14 +90,6 @@ const NavbarWallet: React.FC = () => {
               </div>
             )}
           </div>
-          
-          <Button 
-            onClick={openSwigExtension} 
-            variant="secondary"
-            className="text-sm"
-          >
-            Open Swig
-          </Button>
         </>
       ) : (
         <div className="relative">
@@ -143,7 +117,6 @@ const NavbarWallet: React.FC = () => {
               </div>
             )}
             
-            {/* Dropdown chevron */}
             <svg 
               className={`w-4 h-4 text-gray-500 transition-transform ${showConnectedDropdown ? 'rotate-180' : ''}`}
               fill="none" 
@@ -154,25 +127,9 @@ const NavbarWallet: React.FC = () => {
             </svg>
           </div>
 
-          {/* Connected wallet dropdown */}
           {showConnectedDropdown && (
             <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
               <div className="py-2">
-                <button
-                  onClick={() => {
-                    openSwigExtension();
-                    setShowConnectedDropdown(false);
-                  }}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center transition"
-                >
-                  <svg className="w-4 h-4 mr-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                  Open Swig Extension
-                </button>
-                
-                <div className="border-t border-gray-100 my-1"></div>
-                
                 <button
                   onClick={handleDisconnect}
                   className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center transition"
@@ -186,7 +143,6 @@ const NavbarWallet: React.FC = () => {
             </div>
           )}
         </div>
-      
       )}
       {(showWalletDropdown || showConnectedDropdown) && (
         <div 
