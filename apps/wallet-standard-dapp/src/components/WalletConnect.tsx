@@ -12,32 +12,23 @@ const WalletConnect: React.FC = () => {
     connectWallet,
     disconnectWallet,
   } = useWallet();
+
   const [showWalletList, setShowWalletList] = useState(false);
 
-  // Function to open Swig extension directly
   const openSwigExtension = () => {
-    console.log('Opening Swig Extension');
-
-    // This is the Chrome extension ID for your Swig wallet
-    // Replace with your actual extension ID
     const swigExtensionId = 'ngkjcjceookedgnmacgheeblecefegce';
 
     try {
-      // Check if chrome.runtime is available
       if (window.chrome && window.chrome.runtime) {
-        // Try to open the extension using Chrome's API
         window.chrome.runtime.sendMessage(swigExtensionId, {
           action: 'open_popup',
         });
         console.log('Extension open request sent');
       } else {
-        // Fallback for browsers without chrome.runtime
         throw new Error('Chrome extension API not available');
       }
     } catch (error) {
       console.error('Error opening extension:', error);
-
-      // Fallback: Try to open extension page in a new tab
       window.open(`chrome-extension://${swigExtensionId}/index.html`, '_blank');
     }
   };
@@ -52,7 +43,6 @@ const WalletConnect: React.FC = () => {
       setShowWalletList(false);
     } catch (error) {
       console.error('Failed to connect wallet:', error);
-      // You could show an error message to the user here
     }
   };
 
@@ -60,37 +50,36 @@ const WalletConnect: React.FC = () => {
     disconnectWallet();
   };
 
-  // Debug log to see wallet structure
-  console.log('Wallets:', wallets);
-
   return (
-    <div>
-      <h2 className='text-xl font-medium text-gray-900'>Wallet Connection</h2>
+    <div className="max-w-md mx-auto p-6 space-y-6 bg-white rounded-none">
+      <h2 className="text-2xl font-semibold text-gray-900 text-center">Wallet Connection</h2>
 
       {!connected ? (
-        <div className='mt-4'>
-          <Button onClick={handleConnectClick} disabled={connecting}>
+        <div className="space-y-4">
+          <Button onClick={handleConnectClick} disabled={connecting} className="w-full">
             {connecting ? 'Connecting...' : 'Connect Wallet'}
           </Button>
 
           {showWalletList && wallets && wallets.length > 0 && (
-            <div className='mt-2 bg-white border border-gray-200 rounded shadow-lg p-4'>
-              <h3 className='text-lg font-medium mb-2'>Select a wallet</h3>
-              <ul className='space-y-2'>
+            <div className="w-full border border-gray-200 bg-gray-50 rounded p-4">
+              <h3 className="text-lg font-medium mb-3 text-gray-800">Select a Wallet</h3>
+              <ul className="space-y-2">
                 {wallets.map((wallet, index) => (
                   <li key={wallet.adapter?.name || `wallet-${index}`}>
                     <button
-                      className='w-full text-left px-4 py-2 rounded hover:bg-gray-100 flex items-center'
+                      className="w-full text-left px-4 py-2 rounded hover:bg-gray-100 flex items-center transition"
                       onClick={() => handleWalletSelect(wallet)}
                     >
                       {wallet.adapter?.icon && (
                         <img
                           src={wallet.adapter.icon}
                           alt={`${wallet.adapter.name} icon`}
-                          className='w-6 h-6 mr-2'
+                          className="w-5 h-5 mr-3"
                         />
                       )}
-                      {wallet.adapter?.name || 'Unknown Wallet'}
+                      <span className="text-sm text-gray-800">
+                        {wallet.adapter?.name || 'Unknown Wallet'}
+                      </span>
                     </button>
                   </li>
                 ))}
@@ -99,38 +88,33 @@ const WalletConnect: React.FC = () => {
           )}
 
           {showWalletList && (!wallets || wallets.length === 0) && (
-            <div className='mt-2 bg-white border border-gray-200 rounded shadow-lg p-4'>
-              <p className='text-sm text-gray-600'>
-                No compatible wallets found. Please install a Solana wallet
-                extension that supports the Wallet Standard.
-              </p>
+            <div className="w-full border border-gray-200 bg-gray-50 rounded p-4 text-sm text-gray-600">
+              No compatible wallets found. Please install a Solana wallet extension that supports the Wallet Standard.
             </div>
           )}
         </div>
       ) : (
-        <div className='mt-4'>
-          <div className='flex items-center'>
-            <span className='font-medium mr-2'>Connected:</span>
-            <span className='font-mono text-sm truncate max-w-xs'>
-              {publicKey}
-            </span>
-            <Button
-              variant='secondary'
-              onClick={handleDisconnect}
-              className='ml-4'
-            >
+        <div className="space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+            <div className="text-sm text-gray-700">
+              <span className="font-medium">Connected:</span>{' '}
+              <span className="font-mono text-xs break-all">{publicKey}</span>
+            </div>
+            <Button variant="secondary" onClick={handleDisconnect}>
               Disconnect
             </Button>
           </div>
+
           {selectedWallet && (
-            <div className='mt-2 text-sm text-gray-600'>
+            <div className="text-sm text-gray-600">
               Wallet: {selectedWallet.adapter?.name || 'Unknown Wallet'}
             </div>
           )}
         </div>
       )}
-      <Button onClick={openSwigExtension} variant='secondary'>
-        Open Swig Extension Directly
+
+      <Button onClick={openSwigExtension} variant="secondary" className="w-full">
+        Open Swig Extension
       </Button>
     </div>
   );
