@@ -25,9 +25,6 @@ const SWIG_EXTENSION_ID = "ngkjcjceookedgnmacgheeblecefegce";
 const SOL_LOGO_URI =
   "https://s3.coinmarketcap.com/static-gravity/image/5cc0b99a8dd84fbfa4e150d84b5531f2.png";
 
-// Use a known valid devnet address (this is a common test address)
-const DEFAULT_RECIPIENT = "11111111111111111111111111111112"; // System Program ID as fallback
-
 const TransactionDemo: React.FC = () => {
   const { publicKey } = useWallet();
   const [amount, setAmount] = useState("");
