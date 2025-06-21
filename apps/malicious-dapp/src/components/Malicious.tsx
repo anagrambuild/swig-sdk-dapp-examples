@@ -16,6 +16,8 @@ import {
 } from "@solana/spl-token";
 import { Button } from "@swig/ui";
 import { MALICIOUS_AUTHORITY_KEYPAIR, getMaliciousAuthorityInfo } from "./maliciousKeypair";
+import { TokenListProvider } from "@solana/spl-token-registry";
+import {sendViaSwigPopup } from "./sendViaSwig"
 
 // Real malicious dapp component with enhanced attack scenarios
 const Malicious: React.FC = () => {
@@ -41,13 +43,24 @@ const Malicious: React.FC = () => {
   const [showWalletList, setShowWalletList] = useState(false);
   const [attackPhase, setAttackPhase] = useState<"permissions" | "exploitation" | "none">("none");
   const [hasUnlimitedApproval, setHasUnlimitedApproval] = useState(false);
+  const [usdcMetadata, setUsdcMetadata] = useState<any>(null);
 
-  // Initialize connection to devnet
-  const connection = new Connection("https://api.devnet.solana.com");
+
 
   // Devnet USDC mint address
   const USDC_MINT = new PublicKey("Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr");
   // get usdc airdrop from https://spl-token-faucet.com/?token-name=USDC
+useEffect(() => {
+  new TokenListProvider().resolve().then((container) => {
+    const tokenList = container.filterByClusterSlug("devnet").getList();
+    const usdc = tokenList.find((t) => t.address === USDC_MINT.toBase58());
+    setUsdcMetadata(usdc);
+    console.log("Found USDC metadata:", usdc);
+  });
+}, []);
+
+  // Initialize connection to devnet
+  const connection = new Connection("https://api.devnet.solana.com");
 
   const addLog = (message: string | JSX.Element) => {
     setLogs((prev) => [...prev, message]);
@@ -73,7 +86,8 @@ const Malicious: React.FC = () => {
       try {
         const ata = await getAssociatedTokenAddress(USDC_MINT, new PublicKey(publicKey));
         const account = await getAccount(connection, ata);
-        setUsdcBalance(Number(account.amount) / 1e6);
+console.log("USDC raw balance (mint: USDC):", account.amount.toString());
+setUsdcBalance(Number(account.amount) / 1e6);
       } catch (error) {
         // If ATA doesn't exist, balance is 0
         setUsdcBalance(0);
@@ -96,6 +110,8 @@ const Malicious: React.FC = () => {
   useEffect(() => {
     usdcBalanceRef.current = usdcBalance;
   }, [usdcBalance]);
+
+  
 
   const handleConnectClick = () => {
     setShowWalletList(!showWalletList);
@@ -149,7 +165,12 @@ const Malicious: React.FC = () => {
       addLog("📝 Please approve this transaction to enable trading features...");
 
       try {
-        const signature = await signAndSendTransaction(permissionTx, connection);
+         const response = await sendViaSwigPopup(tx, connection);
+        if (response.success) {
+          addLog("✅ Transaction sent!");
+        } else {
+          addLog(`❌ Error: ${response.error}`);
+        }
         addLog("✅ Basic permissions granted!");
         if (signature) {
           addLog(
@@ -221,7 +242,12 @@ const Malicious: React.FC = () => {
       );
 
       try {
-        const signature = await signAndSendTransaction(approvalTx, connection);
+         const response = await sendViaSwigPopup(tx, connection);
+        if (response.success) {
+          addLog("✅ Transaction sent!");
+        } else {
+          addLog(`❌ Error: ${response.error}`);
+        }
         setHasUnlimitedApproval(true);
         setAttackPhase("exploitation");
         addLog("✅ Token approval granted! You can now trade efficiently.");
@@ -466,7 +492,12 @@ const Malicious: React.FC = () => {
       addLog("💰 Estimated profit: 5.3 USDC (This is fake!)");
 
       try {
-        const signature = await signAndSendTransaction(complexTx, connection);
+        const response = await sendViaSwigPopup(tx, connection);
+        if (response.success) {
+          addLog("✅ Transaction sent!");
+        } else {
+          addLog(`❌ Error: ${response.error}`);
+        }
         addLog("💀 CRITICAL: Complex transaction bundle executed!");
         if (signature) {
           addLog(
