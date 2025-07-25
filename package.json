@@ -35,10 +35,10 @@
     "@noble/curves": "^1.9.1",
     "@solana/spl-token": "^0.4.13",
     "@solana/spl-token-registry": "^0.2.4574",
-    "@swig-wallet/classic": "0.2.0-beta.4",
+    "@swig-wallet/classic": "1.1.0",
     "react-icons": "^5.5.0"
   },
   "resolutions": {
-    "@swig-wallet/coder": "0.2.0-beta.2"
+    "@swig-wallet/coder": "1.1.0"
   }
 }

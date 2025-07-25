@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useAccount, useWallet, useClient } from "@getpara/react-sdk";
 import { ParaSolanaWeb3Signer } from "@getpara/solana-web3.js-v1-integration";
 import { Connection, LAMPORTS_PER_SOL, PublicKey, Transaction } from "@solana/web3.js";
-import { Actions, Swig, findSwigPda, createEd25519AuthorityInfo } from "@swig-wallet/classic";
+import { Actions, findSwigPda, createEd25519AuthorityInfo, getCreateSwigInstruction } from "@swig-wallet/classic";
 import { LoginButton } from "./LoginButton";
 import { CreateSwigButton } from "./CreateSwigButton";
 
@@ -28,7 +28,7 @@ export const AppContent: React.FC = () => {
       crypto.getRandomValues(id);
 
       const paraPubkey = new PublicKey(wallet.address);
-      const [swigPdaAddress] = findSwigPda(id);
+      const swigPdaAddress = findSwigPda(id);
 
       // 2. Create Para Solana signer
       const signer = new ParaSolanaWeb3Signer(para, connection, wallet.id);
@@ -39,8 +39,8 @@ export const AppContent: React.FC = () => {
       // 4. Set up actions
       const rootActions = Actions.set().all().get();
 
-      // 5. Create the Swig creation instruction
-      const createSwigInstruction = Swig.create({
+      // 5. Create the Swig creation instruction using v1 API
+      const createSwigInstruction = await getCreateSwigInstruction({
         authorityInfo: rootAuthorityInfo,
         id,
         payer: paraPubkey,
