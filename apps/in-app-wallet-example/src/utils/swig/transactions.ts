@@ -6,7 +6,7 @@ import {
   Transaction,
   TransactionInstruction,
 } from "@solana/web3.js";
-import { Ed25519Authority, fetchSwig, signInstruction } from "@swig-wallet/classic";
+import { Ed25519Authority, fetchSwig, getSignInstructions } from "@swig-wallet/classic";
 
 export interface TransactionLimits {
   solAmount: number;
@@ -32,19 +32,21 @@ export async function sendTransaction(
 export async function checkTransactionLimits(
   connection: Connection,
   swigAddress: PublicKey,
-  authority: Ed25519Authority,
+  authorityPublicKey: PublicKey,
   limits: TransactionLimits
 ): Promise<boolean> {
   const swig = await fetchSwig(connection, swigAddress);
-  const role = swig.findRoleByAuthority(authority);
+  const roles = swig.findRolesByEd25519SignerPk(authorityPublicKey);
 
-  if (!role) {
+  if (roles.length === 0) {
     throw new Error("Role not found for authority");
   }
 
+  const role = roles[0];
+
   // Check SOL limit
   if (limits.solAmount > 0) {
-    const canSpendSol = role.canSpendSol(BigInt(limits.solAmount * LAMPORTS_PER_SOL));
+    const canSpendSol = role.actions.canSpendSol(BigInt(limits.solAmount * LAMPORTS_PER_SOL));
     if (!canSpendSol) {
       return false;
     }
@@ -56,37 +58,40 @@ export async function checkTransactionLimits(
 export async function signTransaction(
   connection: Connection,
   swigAddress: PublicKey,
-  authority: Ed25519Authority,
+  authorityPublicKey: PublicKey,
   authorityKeypair: Keypair,
   instructions: any[]
 ): Promise<string> {
   const swig = await fetchSwig(connection, swigAddress);
-  const role = swig.findRoleByAuthority(authority);
+  const roles = swig.findRolesByEd25519SignerPk(authorityPublicKey);
 
-  if (!role) {
+  if (roles.length === 0) {
     throw new Error("Role not found for authority");
   }
 
-  const signIx = await signInstruction(role, authorityKeypair.publicKey, instructions);
+  const role = roles[0];
+  const signIxs = await getSignInstructions(swig, role.id, instructions);
 
-  return sendTransaction(connection, signIx, authorityKeypair);
+  return sendTransaction(connection, signIxs[0], authorityKeypair);
 }
 
 export async function getRoleCapabilities(
   connection: Connection,
   swigAddress: PublicKey,
-  authority: Ed25519Authority
+  authorityPublicKey: PublicKey
 ) {
   const swig = await fetchSwig(connection, swigAddress);
-  const role = swig.findRoleByAuthority(authority);
+  const roles = swig.findRolesByEd25519SignerPk(authorityPublicKey);
 
-  if (!role) {
+  if (roles.length === 0) {
     throw new Error("Role not found for authority");
   }
 
+  const role = roles[0];
+
   return {
-    canManageAuthority: role.canManageAuthority(),
-    canSpendSol: role.canSpendSol(),
+    canManageAuthority: role.actions.canManageAuthority(),
+    canSpendSol: role.actions.canSpendSol(),
   };
 }
 

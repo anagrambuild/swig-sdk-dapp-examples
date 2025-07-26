@@ -9,7 +9,7 @@ import {
   Actions,
   findSwigPda,
   createSecp256k1AuthorityInfo,
-  Swig,
+  getCreateSwigInstruction,
 } from "@swig-wallet/classic";
 import { para } from "../../client/para";
 import { hexToBytes } from "@noble/curves/abstract/utils";
@@ -39,7 +39,7 @@ export async function createSwigAccountSecpPara(
   const id = new Uint8Array(32);
   crypto.getRandomValues(id);
   const payer = Keypair.generate();
-  const [swigAddress] = findSwigPda(id);
+  const swigAddress = findSwigPda(id);
 
   // Airdrop
   const airdropSig = await connection.requestAirdrop(
@@ -56,7 +56,7 @@ export async function createSwigAccountSecpPara(
   const rootActions = Actions.set();
   permissionType === "locked" ? rootActions.manageAuthority() : rootActions.all();
 
-  const createIx = Swig.create({
+  const createIx = await getCreateSwigInstruction({
     authorityInfo: createSecp256k1AuthorityInfo(pubKeyBytes),
     id,
     payer: payer.publicKey,

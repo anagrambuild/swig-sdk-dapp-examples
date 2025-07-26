@@ -2,7 +2,7 @@ import { Button, Select } from "@swig/ui";
 import { useSwigContext } from "../../../context/SwigContext";
 import { useState, useEffect } from "react";
 import { LAMPORTS_PER_SOL, PublicKey, SystemProgram, Keypair } from "@solana/web3.js";
-import { Ed25519Authority, fetchSwig } from "@swig-wallet/classic";
+import { createEd25519AuthorityInfo, fetchSwig } from "@swig-wallet/classic";
 import { signTransaction } from "../../../utils/swig/transactions";
 
 interface DefiEd25519Props {
@@ -40,8 +40,8 @@ const DefiEd25519: React.FC<DefiEd25519Props> = ({ walletAddress, setView }) => 
 
           // Get the selected role's SOL limit
           const role = roles[parseInt(selectedRole)];
-          if (role?.canSpendSol?.()) {
-            const limit = role.solSpendLimit();
+          if (role?.actions?.canSpendSol?.()) {
+            const limit = role.actions.solSpendLimit();
             setRoleLimit(limit === null ? null : Number(limit) / LAMPORTS_PER_SOL);
           } else {
             setRoleLimit(null);
@@ -73,7 +73,7 @@ const DefiEd25519: React.FC<DefiEd25519Props> = ({ walletAddress, setView }) => 
     const amountInLamports = Number(solAmount) * LAMPORTS_PER_SOL;
 
     // Client-side validations (set errors but don't return)
-    if (!role?.canSpendSol?.()) {
+    if (!role?.actions?.canSpendSol?.()) {
       setClientError("Selected role does not have permission to spend SOL");
     }
 
@@ -111,13 +111,13 @@ const DefiEd25519: React.FC<DefiEd25519Props> = ({ walletAddress, setView }) => 
       });
 
       // Create authority from the role keypair
-      const authority = Ed25519Authority.fromPublicKey(roleKeypair.publicKey);
+      const authorityInfo = createEd25519AuthorityInfo(roleKeypair.publicKey);
 
       // Debug logs
       const swig = await fetchSwig(connection, new PublicKey(swigAddress));
-      const foundRole = swig.findRoleByAuthority(authority);
+      const foundRoles = swig.findRolesByEd25519SignerPk(roleKeypair.publicKey);
 
-      if (!foundRole) {
+      if (foundRoles.length === 0) {
         setClientError(
           "Role not found for the selected authority. This may indicate a mismatch between the stored keypair and the role's authority."
         );
@@ -128,7 +128,7 @@ const DefiEd25519: React.FC<DefiEd25519Props> = ({ walletAddress, setView }) => 
       const signature = await signTransaction(
         connection,
         new PublicKey(swigAddress),
-        authority,
+        roleKeypair.publicKey,
         roleKeypair,
         [transferIx]
       );
@@ -218,11 +218,11 @@ const DefiEd25519: React.FC<DefiEd25519Props> = ({ walletAddress, setView }) => 
                 <p>Role Name: {roles[parseInt(selectedRole)].name}</p>
                 <p>
                   Can Manage Authority:{" "}
-                  {roles[parseInt(selectedRole)]?.canManageAuthority?.() === true ? "Yes" : "No"}
+                  {roles[parseInt(selectedRole)]?.actions?.canManageAuthority?.() === true ? "Yes" : "No"}
                 </p>
                 <p>
                   Can Spend SOL:{" "}
-                  {roles[parseInt(selectedRole)]?.canSpendSol?.() === true ? "Yes" : "No"}
+                  {roles[parseInt(selectedRole)]?.actions?.canSpendSol?.() === true ? "Yes" : "No"}
                 </p>
                 {roleLimit !== null && (
                   <p className="mt-2 text-blue-600">Spending Limit: {roleLimit.toFixed(4)} SOL</p>

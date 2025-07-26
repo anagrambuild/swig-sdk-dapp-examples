@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Button, Select } from "@swig/ui";
 import { useSwigContext } from "../../../context/SwigContext";
 import { Connection, LAMPORTS_PER_SOL, PublicKey, SystemProgram, Keypair } from "@solana/web3.js";
-import { Ed25519Authority } from "@swig-wallet/classic";
+// import { createEd25519AuthorityInfo } from "@swig-wallet/classic";
 import { signTransaction } from "../../../utils/swig/transactions";
 
 interface BundledTransactionsProps {
@@ -65,8 +65,8 @@ const BundledTransactions: React.FC<BundledTransactionsProps> = ({ setView }) =>
 
           // Get the selected role's SOL limit
           const role = roles[parseInt(selectedRole)];
-          if (role?.canSpendSol?.()) {
-            const limit = role.solSpendLimit();
+          if (role?.actions?.canSpendSol?.()) {
+            const limit = role.actions.solSpendLimit();
             setRoleLimit(limit === null ? null : Number(limit) / LAMPORTS_PER_SOL);
           } else {
             setRoleLimit(null);
@@ -134,7 +134,7 @@ const BundledTransactions: React.FC<BundledTransactionsProps> = ({ setView }) =>
     const role = roles[parseInt(selectedRole)];
 
     // Check if role can spend SOL
-    if (!role?.canSpendSol?.()) {
+    if (!role?.actions?.canSpendSol?.()) {
       setClientError("Selected role does not have permission to spend SOL");
       // return;
     }
@@ -177,9 +177,6 @@ const BundledTransactions: React.FC<BundledTransactionsProps> = ({ setView }) =>
       }
       const roleKeypair = Keypair.fromSecretKey(new Uint8Array(JSON.parse(roleKeypairSecret)));
 
-      // Create the authority from the role keypair
-      const authority = Ed25519Authority.fromPublicKey(roleKeypair.publicKey);
-
       // Execute first transaction
       try {
         const transfer1Ix = SystemProgram.transfer({
@@ -191,7 +188,7 @@ const BundledTransactions: React.FC<BundledTransactionsProps> = ({ setView }) =>
         const signature1 = await signTransaction(
           connection,
           new PublicKey(swigAddress),
-          authority,
+          roleKeypair.publicKey,
           roleKeypair,
           [transfer1Ix]
         );
@@ -215,7 +212,7 @@ const BundledTransactions: React.FC<BundledTransactionsProps> = ({ setView }) =>
         const signature2 = await signTransaction(
           connection,
           new PublicKey(swigAddress),
-          authority,
+          roleKeypair.publicKey,
           roleKeypair,
           [transfer2Ix]
         );
@@ -260,7 +257,7 @@ const BundledTransactions: React.FC<BundledTransactionsProps> = ({ setView }) =>
                 <p>Role Name: {roles[parseInt(selectedRole)].name}</p>
                 <p>
                   Can Spend SOL:{" "}
-                  {roles[parseInt(selectedRole)]?.canSpendSol?.() === true ? "Yes" : "No"}
+                  {roles[parseInt(selectedRole)]?.actions?.canSpendSol?.() === true ? "Yes" : "No"}
                 </p>
                 {roleLimit !== null && (
                   <p className="mt-1 text-blue-600">Spending Limit: {roleLimit.toFixed(4)} SOL</p>

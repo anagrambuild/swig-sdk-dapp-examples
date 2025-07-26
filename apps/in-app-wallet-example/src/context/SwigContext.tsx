@@ -4,9 +4,9 @@ import {
   fetchSwig,
   Role,
   Actions,
-  Ed25519Authority,
-  Secp256k1Authority,
-  addAuthorityInstruction,
+  createEd25519AuthorityInfo,
+  createSecp256k1AuthorityInfo,
+  getAddAuthorityInstructions,
   type InstructionDataOptions,
 } from "@swig-wallet/classic";
 import { para } from "../client/para";
@@ -177,7 +177,7 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
 
       const connection = await getConnection();
       const swig = await fetchSwig(connection, new PublicKey(swigAddress));
-      const rootRole = swig.roles.find((role) => role.canManageAuthority());
+      const rootRole = swig.roles.find((role) => role.actions.canManageAuthority());
       if (!rootRole) throw new Error("No role found with authority management permissions");
 
       const actions = Actions.set();
@@ -192,20 +192,21 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
 
       if (walletType === "SOLANA") {
         newKeypair = Keypair.generate();
-        const newAuthority = Ed25519Authority.fromPublicKey(newKeypair.publicKey);
+        const newAuthorityInfo = createEd25519AuthorityInfo(newKeypair.publicKey);
 
-        addAuthorityIx = await addAuthorityInstruction(
-          rootRole,
-          rootKeypair.publicKey,
-          newAuthority,
+        const addAuthorityIxs = await getAddAuthorityInstructions(
+          swig,
+          rootRole.id,
+          newAuthorityInfo,
           actions.get()
         );
+        addAuthorityIx = addAuthorityIxs[0];
       } else {
         const currentWallet = await getEvmWalletPublicKey();
         if (!currentWallet) throw new Error("EVM public key not found");
         const hexPubkey = currentWallet.startsWith("0x") ? currentWallet.slice(2) : currentWallet;
         const currentWalletBytes = hexToBytes(hexPubkey);
-        const newAuthority = Secp256k1Authority.fromPublicKeyBytes(currentWalletBytes);
+        const newAuthorityInfo = createSecp256k1AuthorityInfo(currentWalletBytes);
 
         const instOptions: InstructionDataOptions = {
           currentSlot: BigInt(await connection.getSlot("finalized")),
@@ -241,13 +242,14 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
           },
         };
 
-        addAuthorityIx = await addAuthorityInstruction(
-          rootRole,
-          rootKeypair.publicKey,
-          newAuthority,
+        const addAuthorityIxs = await getAddAuthorityInstructions(
+          swig,
+          rootRole.id,
+          newAuthorityInfo,
           actions.get(),
           instOptions
         );
+        addAuthorityIx = addAuthorityIxs[0];
       }
 
       const tx = new Transaction().add(addAuthorityIx);
