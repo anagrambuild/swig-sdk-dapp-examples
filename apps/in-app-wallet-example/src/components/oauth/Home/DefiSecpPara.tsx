@@ -167,7 +167,10 @@ const DefiSecpPara: React.FC<DefiProps> = ({ walletAddress, setView }) => {
       };
 
       // Sign with Swig + Secp256k1 via Para
-      const signedIxs = await getSignInstructions(swig, role.id, [transferIx], false, instOptions);
+      const signedIxs = await getSignInstructions(swig, role.id, [transferIx], false, {
+        ...instOptions,
+        payer: feePayer.publicKey,
+      });
       const signedIx = signedIxs[0];
 
       const tx = new Transaction().add(signedIx);

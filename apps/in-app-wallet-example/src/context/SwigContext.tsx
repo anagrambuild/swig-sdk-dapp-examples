@@ -247,7 +247,10 @@ export function SwigProvider({ children, walletAddress, walletType }: SwigProvid
           rootRole.id,
           newAuthorityInfo,
           actions.get(),
-          instOptions
+          {
+            ...instOptions,
+            payer: rootKeypair.publicKey,
+          }
         );
         addAuthorityIx = addAuthorityIxs[0];
       }
