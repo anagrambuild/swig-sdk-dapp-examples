@@ -72,17 +72,20 @@ const DefiEd25519: React.FC<DefiEd25519Props> = ({ walletAddress, setView }) => 
     const role = roles[parseInt(selectedRole)];
     const amountInLamports = Number(solAmount) * LAMPORTS_PER_SOL;
 
-    // Client-side validations (set errors but don't return)
+    // Client-side validations - check all conditions and return early if any fail
     if (!role?.actions?.canSpendSol?.()) {
       setClientError("Selected role does not have permission to spend SOL");
+      return;
     }
 
     if (roleLimit !== null && Number(solAmount) > roleLimit) {
       setClientError(`Amount exceeds role's spending limit of ${roleLimit} SOL`);
+      return;
     }
 
     if (walletBalance !== null && Number(solAmount) > walletBalance) {
       setClientError(`Amount exceeds wallet balance of ${walletBalance} SOL`);
+      return;
     }
 
     setIsTransferring(true);
@@ -90,6 +93,25 @@ const DefiEd25519: React.FC<DefiEd25519Props> = ({ walletAddress, setView }) => 
 
     try {
       const connection = await getConnection();
+
+      console.log("Starting transaction with role:", role.name, "Amount:", solAmount, "SOL");
+
+      // Check Swig account balance first
+      const swigBalance = await connection.getBalance(new PublicKey(swigAddress));
+      const swigBalanceInSol = swigBalance / LAMPORTS_PER_SOL;
+      console.log("Swig account balance:", swigBalanceInSol, "SOL");
+
+      if (swigBalance < amountInLamports) {
+        setClientError(`Insufficient balance in Swig account. Available: ${swigBalanceInSol.toFixed(4)} SOL, Required: ${Number(solAmount).toFixed(4)} SOL. Please fund your Swig account first.`);
+        return;
+      }
+
+      // Estimate transaction fee (typical fee is ~0.000005 SOL)
+      const estimatedFee = 0.000005 * LAMPORTS_PER_SOL;
+      if (swigBalance < amountInLamports + estimatedFee) {
+        setClientError(`Insufficient balance including transaction fees. Available: ${swigBalanceInSol.toFixed(6)} SOL, Required: ${(Number(solAmount) + 0.000005).toFixed(6)} SOL`);
+        return;
+      }
 
       // Get the selected role's keypair from localStorage
       const roleKeypairSecret =
@@ -103,12 +125,16 @@ const DefiEd25519: React.FC<DefiEd25519Props> = ({ walletAddress, setView }) => 
       }
       const roleKeypair = Keypair.fromSecretKey(new Uint8Array(JSON.parse(roleKeypairSecret)));
 
+      console.log("Role keypair loaded, public key:", roleKeypair.publicKey.toBase58());
+
       // Create the transfer instruction
       const transferIx = SystemProgram.transfer({
         fromPubkey: new PublicKey(swigAddress),
         toPubkey: new PublicKey(RECIPIENT_ADDRESS),
         lamports: amountInLamports,
       });
+
+      console.log("Transfer instruction created");
 
       // Create authority from the role keypair
       const authorityInfo = createEd25519AuthorityInfo(roleKeypair.publicKey);
@@ -117,6 +143,8 @@ const DefiEd25519: React.FC<DefiEd25519Props> = ({ walletAddress, setView }) => 
       const swig = await fetchSwig(connection, new PublicKey(swigAddress));
       const foundRoles = swig.findRolesByEd25519SignerPk(roleKeypair.publicKey);
 
+      console.log("Found roles for keypair:", foundRoles.length);
+
       if (foundRoles.length === 0) {
         setClientError(
           "Role not found for the selected authority. This may indicate a mismatch between the stored keypair and the role's authority."
@@ -124,13 +152,26 @@ const DefiEd25519: React.FC<DefiEd25519Props> = ({ walletAddress, setView }) => 
         return;
       }
 
+      console.log("Role permissions validated. Sending transaction through signTransaction...");
+
+      // Get the root keypair to use as fee payer (it should have SOL for fees)
+      const rootKeypairSecret = localStorage.getItem("rootKeypair_0");
+      if (!rootKeypairSecret) {
+        setClientError("Root keypair not found. Cannot pay transaction fees.");
+        return;
+      }
+      const rootKeypair = Keypair.fromSecretKey(new Uint8Array(JSON.parse(rootKeypairSecret)));
+
+      console.log("Using root keypair as fee payer:", rootKeypair.publicKey.toBase58());
+
       // Let the SDK handle the validation and signing
       const signature = await signTransaction(
         connection,
         new PublicKey(swigAddress),
         roleKeypair.publicKey,
         roleKeypair,
-        [transferIx]
+        [transferIx],
+        rootKeypair  // Use root keypair as fee payer
       );
 
       console.log("Sent tx:", signature);

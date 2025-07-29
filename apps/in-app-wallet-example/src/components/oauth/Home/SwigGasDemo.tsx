@@ -237,9 +237,11 @@ export default function SwigTokenDemo() {
               onClick={step.action}
             />
           ))}
-          <Button variant="secondary" onClick={reset}>
-            Reset
-          </Button>
+          <div className="flex justify-center">
+            <Button variant="secondary" onClick={reset}>
+              Reset
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-4 text-sm">
@@ -306,7 +308,11 @@ function Step({
   return (
     <div className="space-y-1">
       <p className="font-medium">{label}</p>
-      {showButton && <Button onClick={onClick}>Run</Button>}
+      {showButton && (
+        <div className="flex justify-center">
+          <Button onClick={onClick}>Run</Button>
+        </div>
+      )}
     </div>
   );
 }

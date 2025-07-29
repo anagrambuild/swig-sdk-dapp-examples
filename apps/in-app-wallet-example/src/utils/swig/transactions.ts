@@ -6,7 +6,7 @@ import {
   Transaction,
   TransactionInstruction,
 } from "@solana/web3.js";
-import { Ed25519Authority, fetchSwig, getSignInstructions } from "@swig-wallet/classic";
+import { fetchSwig, getSignInstructions } from "@swig-wallet/classic";
 
 export interface TransactionLimits {
   solAmount: number;
@@ -17,11 +17,9 @@ export async function sendTransaction(
   instruction: TransactionInstruction,
   payer: Keypair
 ) {
-  const transaction = new Transaction();
-  transaction.instructions = [instruction];
+  const transaction = new Transaction().add(instruction);
   transaction.feePayer = payer.publicKey;
   transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-
   transaction.sign(payer);
 
   return connection.sendRawTransaction(transaction.serialize(), {
@@ -36,20 +34,13 @@ export async function checkTransactionLimits(
   limits: TransactionLimits
 ): Promise<boolean> {
   const swig = await fetchSwig(connection, swigAddress);
-  const roles = swig.findRolesByEd25519SignerPk(authorityPublicKey);
+  const role = swig.findRolesByEd25519SignerPk(authorityPublicKey)[0];
 
-  if (roles.length === 0) {
-    throw new Error("Role not found for authority");
-  }
+  if (!role) throw new Error("Role not found for authority");
 
-  const role = roles[0];
-
-  // Check SOL limit
   if (limits.solAmount > 0) {
     const canSpendSol = role.actions.canSpendSol(BigInt(limits.solAmount * LAMPORTS_PER_SOL));
-    if (!canSpendSol) {
-      return false;
-    }
+    if (!canSpendSol) return false;
   }
 
   return true;
@@ -60,19 +51,26 @@ export async function signTransaction(
   swigAddress: PublicKey,
   authorityPublicKey: PublicKey,
   authorityKeypair: Keypair,
-  instructions: any[]
+  instructions: TransactionInstruction[],
+  feePayer?: Keypair // Optional fee payer, defaults to authorityKeypair
 ): Promise<string> {
   const swig = await fetchSwig(connection, swigAddress);
-  const roles = swig.findRolesByEd25519SignerPk(authorityPublicKey);
+  const role = swig.findRolesByEd25519SignerPk(authorityPublicKey)[0];
 
-  if (roles.length === 0) {
-    throw new Error("Role not found for authority");
+  if (!role) throw new Error("Role not found for authority");
+
+  // Get the swig-wrapped instructions
+  const signInstructions = await getSignInstructions(swig, role.id, instructions);
+
+  if (!signInstructions || signInstructions.length === 0) {
+    throw new Error("No sign instructions returned from Swig");
   }
+  const signedInstruction = signInstructions[0];
+  const actualFeePayer = feePayer || authorityKeypair;
+  const extraSigners = feePayer && feePayer !== authorityKeypair ? [authorityKeypair] : [];
 
-  const role = roles[0];
-  const signIxs = await getSignInstructions(swig, role.id, instructions);
-
-  return sendTransaction(connection, signIxs[0], authorityKeypair);
+  // Send the transaction with proper confirmation
+  return sendAndConfirm(connection, signedInstruction, actualFeePayer, extraSigners);
 }
 
 export async function getRoleCapabilities(
@@ -81,13 +79,9 @@ export async function getRoleCapabilities(
   authorityPublicKey: PublicKey
 ) {
   const swig = await fetchSwig(connection, swigAddress);
-  const roles = swig.findRolesByEd25519SignerPk(authorityPublicKey);
+  const role = swig.findRolesByEd25519SignerPk(authorityPublicKey)[0];
 
-  if (roles.length === 0) {
-    throw new Error("Role not found for authority");
-  }
-
-  const role = roles[0];
+  if (!role) throw new Error("Role not found for authority");
 
   return {
     canManageAuthority: role.actions.canManageAuthority(),
@@ -102,21 +96,60 @@ export async function sendAndConfirm(
   extraSigners: Keypair[] = []
 ): Promise<string> {
   const tx = ix instanceof Transaction ? ix : new Transaction().add(ix);
-
   tx.feePayer = feePayer.publicKey;
-  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
   tx.recentBlockhash = blockhash;
 
+  // Sign the transaction
   tx.sign(feePayer, ...extraSigners);
 
-  const sig = await connection.sendRawTransaction(tx.serialize(), {
-    skipPreflight: true,
-  });
+  // Send with retry logic
+  let sig: string;
+  try {
+    sig = await connection.sendRawTransaction(tx.serialize(), {
+      skipPreflight: false, // Enable preflight for better error messages
+      preflightCommitment: "confirmed",
+    });
+  } catch (error) {
+    console.error("Failed to send transaction:", error);
 
-  await connection.confirmTransaction(
-    { signature: sig, blockhash, lastValidBlockHeight },
-    "confirmed"
-  );
+    // Check if it's a SendTransactionError and extract logs
+    if (error && typeof error === "object" && "getLogs" in error) {
+      try {
+        const logs = (error as any).getLogs();
+        console.error("Transaction logs:", logs);
+        throw new Error(
+          `Transaction send failed: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }. Logs: ${JSON.stringify(logs)}`
+        );
+      } catch (logError) {
+        console.error("Could not get transaction logs:", logError);
+      }
+    }
+
+    throw new Error(
+      `Transaction send failed: ${error instanceof Error ? error.message : "Unknown error"}`
+    );
+  }
+
+  // Confirm the transaction with timeout
+  try {
+    await connection.confirmTransaction(
+      {
+        signature: sig,
+        blockhash,
+        lastValidBlockHeight,
+      },
+      "confirmed"
+    );
+  } catch (error) {
+    console.error("Transaction confirmation failed:", error);
+    throw new Error(
+      `Transaction confirmation failed: ${error instanceof Error ? error.message : "Unknown error"}`
+    );
+  }
 
   return sig;
 }
