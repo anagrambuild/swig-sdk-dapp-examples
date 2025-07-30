@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { SolanaProvider } from './components/SolanaProvider';
 import LegacyWalletConnect from './components/LegacyWalletConnect';
 import LegacyTransactionDemo from './components/LegacyTransactionDemo';
 
-const App: React.FC = () => {
-  const [connected, setConnected] = React.useState(false);
-  const [publicKey, setPublicKey] = React.useState<string | null>(null);
+const AppContent: React.FC = () => {
+  const [connected, setConnected] = useState(false);
+  const [publicKey, setPublicKey] = useState<string | null>(null);
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -27,12 +28,12 @@ const App: React.FC = () => {
               setPublicKey(null);
             }}
           />
-          
+
           {connected && publicKey && (
             <div className="mt-8">
               <h2 className="text-xl font-medium text-gray-900">Connected Account</h2>
               <p className="mt-2 text-sm text-gray-600 break-all">{publicKey}</p>
-              
+
               <div className="mt-8">
                 <LegacyTransactionDemo publicKey={publicKey} />
               </div>
@@ -43,5 +44,11 @@ const App: React.FC = () => {
     </div>
   );
 };
+
+const App: React.FC = () => (
+  <SolanaProvider>
+    <AppContent />
+  </SolanaProvider>
+);
 
 export default App;

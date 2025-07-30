@@ -8,7 +8,16 @@
     "lint": "eslint src --ext ts,tsx"
   },
   "dependencies": {
-    "@solana/web3.js": "^1.78.0",
+    "@solana/wallet-adapter-backpack": "^0.1.14",
+    "@solana/wallet-adapter-base": "0.9.27",
+    "@solana/wallet-adapter-coinbase": "^0.1.23",
+    "@solana/wallet-adapter-phantom": "^0.9.28",
+    "@solana/wallet-adapter-react": "0.15.38",
+    "@solana/wallet-adapter-react-ui": "0.9.38",
+    "@solana/wallet-adapter-solflare": "^0.6.32",
+    "@solana/wallet-adapter-torus": "^0.11.32",
+    "@solana/wallet-adapter-wallets": "^0.19.37",
+    "@solana/web3.js": "1.98.2",
     "@swig/ui": "*",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
