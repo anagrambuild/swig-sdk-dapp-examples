@@ -5,7 +5,6 @@ import {
   LAMPORTS_PER_SOL,
 } from '@solana/web3.js';
 import { fetchSwig } from '@swig-wallet/classic';
-  // import { createEd25519AuthorityInfo, fetchSwig } from '@swig-wallet/classic';
 
 export interface SwigAccountState {
   swigAddress: PublicKey;

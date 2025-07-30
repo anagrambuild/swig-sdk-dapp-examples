@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Button, Select } from "@swig/ui";
 import { useSwigContext } from "../../../context/SwigContext";
 import { Connection, LAMPORTS_PER_SOL, PublicKey, SystemProgram, Keypair } from "@solana/web3.js";
-// import { createEd25519AuthorityInfo } from "@swig-wallet/classic";
 import { signTransaction } from "../../../utils/swig/transactions";
 
 interface BundledTransactionsProps {
