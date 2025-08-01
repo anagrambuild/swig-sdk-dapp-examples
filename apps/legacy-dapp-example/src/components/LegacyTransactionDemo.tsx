@@ -18,7 +18,7 @@ const LegacyTransactionDemo: React.FC<LegacyTransactionDemoProps> = ({ publicKey
   const { wallet } = useWallet();
 
   const [isLoading, setIsLoading] = useState(false);
-  const [txResult, setTxResult] = useState<string | null>(null);
+  const [txResult, setTxResult] = useState<string | React.ReactNode | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
 
   const [recipient, setRecipient] = useState("");
@@ -81,7 +81,19 @@ const LegacyTransactionDemo: React.FC<LegacyTransactionDemoProps> = ({ publicKey
         "processed"
       );
 
-      setTxResult(`✅ Transfer successful! Signature: ${txid}`);
+      setTxResult(
+        <span>
+          ✅ Transfer successful! Signature:{" "}
+          <a
+            href={`https://explorer.solana.com/tx/${txid}?cluster=devnet`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 underline"
+          >
+            {txid}
+          </a>
+        </span>
+      );
       setTimeout(getBalance, 1000);
     } catch (err) {
       setTxResult(`❌ Transaction failed: ${err instanceof Error ? err.message : "Unknown error"}`);
@@ -100,7 +112,19 @@ const LegacyTransactionDemo: React.FC<LegacyTransactionDemoProps> = ({ publicKey
     try {
       const signature = await connection.requestAirdrop(wallet.adapter.publicKey, LAMPORTS_PER_SOL);
       await connection.confirmTransaction(signature, "processed");
-      setTxResult(`✅ Airdrop successful! Signature: ${signature}`);
+      setTxResult(
+        <span>
+          ✅ Airdrop successful! Signature:{" "}
+          <a
+            href={`https://explorer.solana.com/tx/${signature}?cluster=devnet`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 underline"
+          >
+            {signature}
+          </a>
+        </span>
+      );
       setTimeout(getBalance, 2000);
     } catch (err) {
       setTxResult(`❌ Airdrop failed: ${err instanceof Error ? err.message : "Unknown error"}`);
