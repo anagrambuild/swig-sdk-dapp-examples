@@ -20,8 +20,8 @@ const SwigDashboard: React.FC<SwigDashboardProps> = () => {
   // Add a function to calculate total spending limits
   const calculateTotalSpendingLimits = () => {
     return roles.reduce((total, role) => {
-      if (role?.canSpendSol?.()) {
-        const limit = role.solSpendLimit();
+      if (role?.actions?.canSpendSol?.()) {
+        const limit = role.actions.solSpendLimit();
         return total + (limit === null ? 0 : Number(limit) / LAMPORTS_PER_SOL);
       }
       return total;
@@ -91,16 +91,16 @@ const SwigDashboard: React.FC<SwigDashboardProps> = () => {
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">Manage Authority:</span>
                       <span
-                        className={role?.canManageAuthority?.() ? "text-blue-600" : "text-gray-500"}
+                        className={role?.actions?.canManageAuthority?.() ? "text-blue-600" : "text-gray-500"}
                       >
-                        {role?.canManageAuthority?.() ? "Yes" : "No"}
+                        {role?.actions?.canManageAuthority?.() ? "Yes" : "No"}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">SOL Spending:</span>
-                      <span className={role?.canSpendSol?.() ? "text-blue-600" : "text-gray-500"}>
-                        {role?.canSpendSol?.()
-                          ? formatSolLimit(role.solSpendLimit())
+                      <span className={role?.actions?.canSpendSol?.() ? "text-blue-600" : "text-gray-500"}>
+                        {role?.actions?.canSpendSol?.()
+                          ? formatSolLimit(role.actions.solSpendLimit())
                           : "No permission"}
                       </span>
                     </div>

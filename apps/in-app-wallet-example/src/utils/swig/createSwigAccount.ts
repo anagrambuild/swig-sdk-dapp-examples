@@ -1,5 +1,5 @@
-import { Connection, Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
-import { Actions, createSwig, Ed25519Authority, findSwigPda } from "@swig-wallet/classic";
+import { Connection, Keypair, LAMPORTS_PER_SOL, Transaction, sendAndConfirmTransaction } from "@solana/web3.js";
+import { Actions, getCreateSwigInstruction, createEd25519AuthorityInfo, findSwigPda } from "@swig-wallet/classic";
 
 export async function createSwigAccount(
   connection: Connection,
@@ -14,21 +14,27 @@ export async function createSwigAccount(
     const rootKeypair = Keypair.generate();
 
     // Find the Swig PDA
-    const [swigAddress] = findSwigPda(id);
+    const swigAddress = findSwigPda(id);
 
     console.log("Requesting airdrop for root authority...");
     // Request airdrop for the root authority only (PDAs cannot receive airdrops)
-    const signature = await connection.requestAirdrop(
+    const airdropSignature = await connection.requestAirdrop(
       rootKeypair.publicKey,
       2 * LAMPORTS_PER_SOL // Request 2 SOL to cover creation costs and have some left for transfers
     );
 
+    const { blockhash: airdropBlockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+    
     // Wait for airdrop to be confirmed
-    await connection.confirmTransaction(signature);
+    await connection.confirmTransaction({
+      signature: airdropSignature,
+      blockhash: airdropBlockhash,
+      lastValidBlockHeight: lastValidBlockHeight
+    });
     console.log("Airdrop confirmed");
 
-    // Create root authority
-    const rootAuthority = Ed25519Authority.fromPublicKey(rootKeypair.publicKey);
+    // Create root authority info
+    const rootAuthorityInfo = createEd25519AuthorityInfo(rootKeypair.publicKey);
 
     // Set up root actions based on permission type
     const rootActions = Actions.set();
@@ -39,18 +45,22 @@ export async function createSwigAccount(
     }
 
     console.log("Creating Swig account...");
-    // Create the Swig account
-    const tx = await createSwig(
-      connection,
+    // Create the Swig account instruction
+    const createSwigIx = await getCreateSwigInstruction({
+      payer: rootKeypair.publicKey,
       id,
-      rootAuthority,
-      rootActions.get(),
-      rootKeypair.publicKey,
-      [rootKeypair]
-    );
+      actions: rootActions.get(),
+      authorityInfo: rootAuthorityInfo,
+    });
 
-    // Wait for transaction to be confirmed
-    await connection.confirmTransaction(tx);
+    // Create and send transaction
+    const tx = new Transaction().add(createSwigIx);
+    tx.feePayer = rootKeypair.publicKey;
+    const { blockhash: txBlockhash } = await connection.getLatestBlockhash();
+    tx.recentBlockhash = txBlockhash;
+    tx.sign(rootKeypair);
+
+    const signature = await sendAndConfirmTransaction(connection, tx, [rootKeypair]);
     console.log("Swig account created successfully!");
     console.log("Swig address:", swigAddress.toBase58());
     console.log("Root authority address:", rootKeypair.publicKey.toBase58());

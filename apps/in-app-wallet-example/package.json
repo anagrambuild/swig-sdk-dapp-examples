@@ -11,8 +11,8 @@
     "@getpara/web-sdk": "^1.11.0",
     "@heroicons/react": "^2.2.0",
     "@solana/web3.js": "^1.78.0",
-    "@swig-wallet/classic": "0.2.0-beta.4",
-    "@swig-wallet/coder": "0.2.0-beta.2",
+    "@swig-wallet/classic": "1.1.0",
+    "@swig-wallet/coder": "1.1.0",
     "@swig/ui": "workspace:*",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"

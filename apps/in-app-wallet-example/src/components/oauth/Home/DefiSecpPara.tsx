@@ -11,8 +11,9 @@ import {
   sendAndConfirmTransaction,
 } from "@solana/web3.js";
 import {
-  Secp256k1Authority,
-  signInstruction,
+  createSecp256k1AuthorityInfo,
+  getSignInstructions,
+  fetchSwig,
   type InstructionDataOptions,
 } from "@swig-wallet/classic";
 import { hexToBytes } from "@noble/curves/abstract/utils";
@@ -55,8 +56,8 @@ const DefiSecpPara: React.FC<DefiProps> = ({ walletAddress, setView }) => {
 
           // Get the selected role's SOL limit
           const role = roles[parseInt(selectedRole)];
-          if (role?.canSpendSol?.()) {
-            const limit = role.solSpendLimit();
+          if (role?.actions?.canSpendSol?.()) {
+            const limit = role.actions.solSpendLimit();
             setRoleLimit(limit === null ? null : Number(limit) / LAMPORTS_PER_SOL);
           } else {
             setRoleLimit(null);
@@ -86,7 +87,7 @@ const DefiSecpPara: React.FC<DefiProps> = ({ walletAddress, setView }) => {
     const role = roles[parseInt(selectedRole)];
     const amountInLamports = Number(solAmount) * LAMPORTS_PER_SOL;
 
-    if (!role?.canSpendSol?.()) {
+    if (!role?.actions?.canSpendSol?.()) {
       setClientError("Selected role does not have permission to spend SOL");
       return;
     }
@@ -106,6 +107,9 @@ const DefiSecpPara: React.FC<DefiProps> = ({ walletAddress, setView }) => {
     try {
       const connection = await getConnection();
 
+      // Fetch swig object
+      const swig = await fetchSwig(connection, new PublicKey(swigAddress));
+
       // Create a fee payer and fund it
       const feePayer = Keypair.generate();
       const airdropSig = await connection.requestAirdrop(feePayer.publicKey, LAMPORTS_PER_SOL);
@@ -121,7 +125,7 @@ const DefiSecpPara: React.FC<DefiProps> = ({ walletAddress, setView }) => {
       const pubKeyBytes = hexToBytes(
         publicKeyHex.startsWith("0x") ? publicKeyHex.slice(2) : publicKeyHex
       );
-      const authority = Secp256k1Authority.fromPublicKeyBytes(pubKeyBytes);
+      const authorityInfo = createSecp256k1AuthorityInfo(pubKeyBytes);
       console.log("Authority", role.authority);
 
       // Prepare transfer instruction
@@ -163,7 +167,11 @@ const DefiSecpPara: React.FC<DefiProps> = ({ walletAddress, setView }) => {
       };
 
       // Sign with Swig + Secp256k1 via Para
-      const signedIx = await signInstruction(role, feePayer.publicKey, [transferIx], instOptions);
+      const signedIxs = await getSignInstructions(swig, role.id, [transferIx], false, {
+        ...instOptions,
+        payer: feePayer.publicKey,
+      });
+      const signedIx = signedIxs[0];
 
       const tx = new Transaction().add(signedIx);
       tx.feePayer = feePayer.publicKey;
@@ -235,7 +243,7 @@ const DefiSecpPara: React.FC<DefiProps> = ({ walletAddress, setView }) => {
               <div className="p-4 border rounded">
                 <p>Role Name: {roles[parseInt(selectedRole)].name}</p>
                 <p>
-                  Can Spend SOL: {roles[parseInt(selectedRole)]?.canSpendSol?.() ? "Yes" : "No"}
+                  Can Spend SOL: {roles[parseInt(selectedRole)]?.actions?.canSpendSol?.() ? "Yes" : "No"}
                 </p>
                 {roleLimit !== null && (
                   <p className="text-blue-600">Limit: {roleLimit.toFixed(4)} SOL</p>

@@ -8,11 +8,11 @@ import {
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import {
-  Ed25519Authority,
+  createEd25519AuthorityInfo,
   Actions,
-  addAuthorityInstruction,
+  getAddAuthorityInstructions,
   fetchSwig,
-  signInstruction,
+  getSignInstructions,
   Role,
 } from "@swig-wallet/classic";
 import { Button } from "@swig/ui";
@@ -165,12 +165,13 @@ export default function SwigTokenDemo() {
           if (!swig || !rootKeypair || !usdcMint || !devWallet)
             throw new Error("Missing role deps");
 
-          const rootAuth = Ed25519Authority.fromPublicKey(rootKeypair.publicKey);
-          const devAuth = Ed25519Authority.fromPublicKey(devWallet.publicKey);
-          const ix = await addAuthorityInstruction(
-            swig.findRoleByAuthority(rootAuth)!,
-            rootKeypair.publicKey,
-            devAuth,
+          const rootRoles = swig.findRolesByEd25519SignerPk(rootKeypair.publicKey);
+          const rootRole = rootRoles[0];
+          const devAuthInfo = createEd25519AuthorityInfo(devWallet.publicKey);
+          const ixs = await getAddAuthorityInstructions(
+            swig,
+            rootRole.id,
+            devAuthInfo,
             Actions.set()
               .tokenLimit({
                 mint: usdcMint,
@@ -178,9 +179,10 @@ export default function SwigTokenDemo() {
               })
               .get()
           );
-          await sendAndConfirm(conn, ix, rootKeypair);
-          await swig.refetch(conn);
-          setDevRole(swig.findRoleByAuthority(devAuth)!);
+          await sendAndConfirm(conn, ixs[0], rootKeypair);
+          await swig.refetch();
+          const devRoles = swig.findRolesByEd25519SignerPk(devWallet.publicKey);
+          setDevRole(devRoles[0]);
         }, 4),
     },
     {
@@ -201,7 +203,8 @@ export default function SwigTokenDemo() {
             TOKEN_PROGRAM_ID
           );
 
-          const signed = await signInstruction(devRole, devWallet.publicKey, [ix]);
+          const signedIxs = await getSignInstructions(swig, devRole.id, [ix]);
+          const signed = signedIxs[0];
           const sig = await sendAndConfirm(conn, signed, devWallet);
           const network = localStorage.getItem("swig_network") || "localnet";
           const explorerUrl =
@@ -234,9 +237,11 @@ export default function SwigTokenDemo() {
               onClick={step.action}
             />
           ))}
-          <Button variant="secondary" onClick={reset}>
-            Reset
-          </Button>
+          <div className="flex justify-center">
+            <Button variant="secondary" onClick={reset}>
+              Reset
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-4 text-sm">
@@ -303,7 +308,11 @@ function Step({
   return (
     <div className="space-y-1">
       <p className="font-medium">{label}</p>
-      {showButton && <Button onClick={onClick}>Run</Button>}
+      {showButton && (
+        <div className="flex justify-center">
+          <Button onClick={onClick}>Run</Button>
+        </div>
+      )}
     </div>
   );
 }

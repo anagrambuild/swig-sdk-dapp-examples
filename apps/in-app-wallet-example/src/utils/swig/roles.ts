@@ -1,9 +1,9 @@
 import { Connection, PublicKey, Keypair } from "@solana/web3.js";
 import {
   Actions,
-  Ed25519Authority,
+  createEd25519AuthorityInfo,
   fetchSwig,
-  addAuthorityInstruction,
+  getAddAuthorityInstructions,
 } from "@swig-wallet/classic";
 import { sendTransaction } from "./transactions";
 
@@ -20,19 +20,20 @@ export async function fetchSwigRoles(connection: Connection, swigAddress: Public
 export async function addNewRole(
   connection: Connection,
   swigAddress: PublicKey,
-  rootAuthority: Ed25519Authority,
+  rootAuthorityPublicKey: PublicKey,
   rootKeypair: Keypair,
   newAuthorityKeypair: Keypair,
   permissions: RolePermissions
 ) {
   const swig = await fetchSwig(connection, swigAddress);
-  const rootRole = swig.findRoleByAuthority(rootAuthority);
+  const rootRoles = swig.findRolesByEd25519SignerPk(rootAuthorityPublicKey);
 
-  if (!rootRole) {
+  if (rootRoles.length === 0) {
     throw new Error("Root role not found");
   }
 
-  const newAuthority = Ed25519Authority.fromPublicKey(newAuthorityKeypair.publicKey);
+  const rootRole = rootRoles[0];
+  const newAuthorityInfo = createEd25519AuthorityInfo(newAuthorityKeypair.publicKey);
   const actions = Actions.set();
 
   if (permissions.canManageAuthority) {
@@ -43,15 +44,15 @@ export async function addNewRole(
     actions.solLimit({ amount: BigInt(permissions.solLimit) });
   }
 
-  const addAuthorityIx = await addAuthorityInstruction(
-    rootRole,
-    rootKeypair.publicKey,
-    newAuthority,
+  const addAuthorityIxs = await getAddAuthorityInstructions(
+    swig,
+    rootRole.id,
+    newAuthorityInfo,
     actions.get()
   );
 
-  await sendTransaction(connection, addAuthorityIx, rootKeypair);
-  await swig.refetch(connection);
+  await sendTransaction(connection, addAuthorityIxs[0], rootKeypair);
+  await swig.refetch();
 
   return swig.roles;
 }

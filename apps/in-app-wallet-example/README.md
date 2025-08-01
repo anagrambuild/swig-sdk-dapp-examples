@@ -23,7 +23,7 @@ bun run build
 2. Start a local validator with the deployed swig program:
 
 ```bash
-solana-test-validator --reset --bpf-program swigDk8JezhiAVde8k6NMwxpZfgGm2NNuMe1KYCmUjP swig.so
+solana-test-validator --reset --bpf-program swigypWHEksbC64pWKwah1WTeh9JXwx8H1rJHLdbQMB swig.so
 ```
 
 3. Run the test files to verify SDK functionality:
