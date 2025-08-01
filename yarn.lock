@@ -1292,11 +1292,11 @@ __metadata:
   linkType: hard
 
 "@moonpay/moonpay-react@npm:^1.8.3":
-  version: 1.10.4
-  resolution: "@moonpay/moonpay-react@npm:1.10.4"
+  version: 1.10.2
+  resolution: "@moonpay/moonpay-react@npm:1.10.2"
   peerDependencies:
     react: ">=16"
-  checksum: 10c0/9fdea9b1988adadb32c38ac9cfe52ec81529966e53aa4cd37a915340e52fcc84d5f1049252c1803e65689bd35fc8c1fe1154144eb065312c1e39b3a956e2ab3f
+  checksum: 10c0/5b9dfdd9b5aa0924f55772b3997f07725ac4e8b2f35774e74916f2b18e23132259492b6d04c09cf47d0d1decb8fff19df4dc6124e3aef7e78bf740a83ecea9aa
   languageName: node
   linkType: hard
 
@@ -1400,11 +1400,11 @@ __metadata:
   linkType: hard
 
 "@noble/curves@npm:^1.0.0, @noble/curves@npm:^1.4.2, @noble/curves@npm:^1.6.0, @noble/curves@npm:^1.8.0, @noble/curves@npm:^1.8.2, @noble/curves@npm:^1.9.1, @noble/curves@npm:~1.9.0":
-  version: 1.9.5
-  resolution: "@noble/curves@npm:1.9.5"
+  version: 1.9.4
+  resolution: "@noble/curves@npm:1.9.4"
   dependencies:
     "@noble/hashes": "npm:1.8.0"
-  checksum: 10c0/98d580d8295d2651482ac9307661960662c9a14358ed6971d4a2448338213906d6802bd896032d359e57cf4e11ff3dedbba4449b99b5b021b1e03f909441ded8
+  checksum: 10c0/c5ac42bf0c4ac822ee7c107f7b5647140a4209bce6929cdf21a38bc575be8aa91c130c4d4bea5a8a3100c53728fc0c6757382f005779cd14b10ea9a00f1a4592
   languageName: node
   linkType: hard
 
@@ -2051,7 +2051,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@solana-mobile/wallet-adapter-mobile@npm:^2.2.0":
+"@solana-mobile/wallet-adapter-mobile@npm:^2.1.5, @solana-mobile/wallet-adapter-mobile@npm:^2.2.0":
   version: 2.2.2
   resolution: "@solana-mobile/wallet-adapter-mobile@npm:2.2.2"
   dependencies:
@@ -2842,7 +2842,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@solana/wallet-adapter-base-ui@npm:^0.1.6":
+"@solana/wallet-adapter-backpack@npm:^0.1.14":
+  version: 0.1.14
+  resolution: "@solana/wallet-adapter-backpack@npm:0.1.14"
+  dependencies:
+    "@solana/wallet-adapter-base": "npm:^0.9.23"
+  peerDependencies:
+    "@solana/web3.js": ^1.77.3
+  checksum: 10c0/889a26f1c5c918e12a67d3325a22e7c0c552fa796e5bfd9828915ac90ff53fdf674515cb71c19f9b908300ef794c14581392899fbd9436b8cfb7a1898a893ddf
+  languageName: node
+  linkType: hard
+
+"@solana/wallet-adapter-base-ui@npm:^0.1.5, @solana/wallet-adapter-base-ui@npm:^0.1.6":
   version: 0.1.6
   resolution: "@solana/wallet-adapter-base-ui@npm:0.1.6"
   dependencies:
@@ -2854,7 +2865,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@solana/wallet-adapter-base@npm:^0.9.17, @solana/wallet-adapter-base@npm:^0.9.23, @solana/wallet-adapter-base@npm:^0.9.26, @solana/wallet-adapter-base@npm:^0.9.27":
+"@solana/wallet-adapter-base@npm:0.9.27, @solana/wallet-adapter-base@npm:^0.9.17, @solana/wallet-adapter-base@npm:^0.9.23, @solana/wallet-adapter-base@npm:^0.9.26, @solana/wallet-adapter-base@npm:^0.9.27":
   version: 0.9.27
   resolution: "@solana/wallet-adapter-base@npm:0.9.27"
   dependencies:
@@ -3087,6 +3098,21 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@solana/wallet-adapter-react-ui@npm:0.9.38":
+  version: 0.9.38
+  resolution: "@solana/wallet-adapter-react-ui@npm:0.9.38"
+  dependencies:
+    "@solana/wallet-adapter-base": "npm:^0.9.26"
+    "@solana/wallet-adapter-base-ui": "npm:^0.1.5"
+    "@solana/wallet-adapter-react": "npm:^0.15.38"
+  peerDependencies:
+    "@solana/web3.js": ^1.98.0
+    react: "*"
+    react-dom: "*"
+  checksum: 10c0/9e9ada33b8647394821795a64117a070e0513cbff3eda691cd9160e6a4b037bfffad6187c527e5031a333ededbf1be02d30694c08a35b22c233ba7d8534ef860
+  languageName: node
+  linkType: hard
+
 "@solana/wallet-adapter-react-ui@npm:^0.9.38":
   version: 0.9.39
   resolution: "@solana/wallet-adapter-react-ui@npm:0.9.39"
@@ -3099,6 +3125,20 @@ __metadata:
     react: "*"
     react-dom: "*"
   checksum: 10c0/95264c0c538d352e67eebc5c381d46b7dfb670f9d35b4a5eb69648d71363c6202755b93f10c03202b2503a9cd3a4862f7561eddadcce5f01489058a7c37edaa7
+  languageName: node
+  linkType: hard
+
+"@solana/wallet-adapter-react@npm:0.15.38":
+  version: 0.15.38
+  resolution: "@solana/wallet-adapter-react@npm:0.15.38"
+  dependencies:
+    "@solana-mobile/wallet-adapter-mobile": "npm:^2.1.5"
+    "@solana/wallet-adapter-base": "npm:^0.9.26"
+    "@solana/wallet-standard-wallet-adapter-react": "npm:^1.1.4"
+  peerDependencies:
+    "@solana/web3.js": ^1.98.0
+    react: "*"
+  checksum: 10c0/760f19025fdd4f9af7e146096b49081a3f1c20db3e122bcd6826fb4d50e31e24d8285003b415553562e6b1c11aa8261636c8c2c0630f5192be2fe6cad760c998
   languageName: node
   linkType: hard
 
@@ -3286,7 +3326,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@solana/wallet-adapter-wallets@npm:^0.19.32, @solana/wallet-adapter-wallets@npm:^0.19.36":
+"@solana/wallet-adapter-wallets@npm:^0.19.32, @solana/wallet-adapter-wallets@npm:^0.19.36, @solana/wallet-adapter-wallets@npm:^0.19.37":
   version: 0.19.37
   resolution: "@solana/wallet-adapter-wallets@npm:0.19.37"
   dependencies:
@@ -3437,7 +3477,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@solana/web3.js@npm:^1.32.0, @solana/web3.js@npm:^1.36.0, @solana/web3.js@npm:^1.78.0, @solana/web3.js@npm:^1.91.4, @solana/web3.js@npm:^1.98.0, @solana/web3.js@npm:^1.98.2":
+"@solana/web3.js@npm:1.98.2, @solana/web3.js@npm:^1.32.0, @solana/web3.js@npm:^1.36.0, @solana/web3.js@npm:^1.78.0, @solana/web3.js@npm:^1.91.4, @solana/web3.js@npm:^1.98.0, @solana/web3.js@npm:^1.98.2":
   version: 1.98.2
   resolution: "@solana/web3.js@npm:1.98.2"
   dependencies:
@@ -3530,8 +3570,8 @@ __metadata:
   linkType: hard
 
 "@stencil/core@npm:^4.7.0":
-  version: 4.36.2
-  resolution: "@stencil/core@npm:4.36.2"
+  version: 4.36.1
+  resolution: "@stencil/core@npm:4.36.1"
   dependencies:
     "@rollup/rollup-darwin-arm64": "npm:4.34.9"
     "@rollup/rollup-darwin-x64": "npm:4.34.9"
@@ -3560,7 +3600,7 @@ __metadata:
       optional: true
   bin:
     stencil: bin/stencil
-  checksum: 10c0/2b2650016a072e426b68c923f900db70c8f4c427cef3c8e63dbe35ce371b40db3f0b7ec6e47c5dffcd0186c74b156147cfba0f804dd5e2f901a5d8d6384836f8
+  checksum: 10c0/c2e338d3c4a4b70173e7e10810d9cc558d8321e6c9ef8118d8a39a42831a5f3fed4c2daaa331316d7f10a262be57c33234c9747d5ee2f48a9a80151226fda0a9
   languageName: node
   linkType: hard
 
@@ -3586,22 +3626,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@swig-wallet/classic@npm:1.0.0":
-  version: 1.0.0
-  resolution: "@swig-wallet/classic@npm:1.0.0"
-  dependencies:
-    "@noble/curves": "npm:^1.8.2"
-    "@solana-program/token": "npm:^0.5.1"
-    "@solana/kit": "npm:^2.1.0"
-    "@swig-wallet/coder": "npm:1.0.0"
-    "@swig-wallet/lib": "npm:1.0.0"
-    bn.js: "npm:^5.2.2"
-  peerDependencies:
-    "@solana/web3.js": ^1.98.0
-  checksum: 10c0/57074093d64cd8c72e92730c5ad2d3f8721959bd2e030b086abfe04c21973d95908148dfb0007fbad651ef8ca873785d4af9409574bb043f54945e59c7714394
-  languageName: node
-  linkType: hard
-
 "@swig-wallet/classic@npm:1.1.0":
   version: 1.1.0
   resolution: "@swig-wallet/classic@npm:1.1.0"
@@ -3624,19 +3648,6 @@ __metadata:
   dependencies:
     "@solana/kit": "npm:^2.1.0"
   checksum: 10c0/afe78d7a83fcc90485243a750aad450d22630630d1baa9e098b551441a71574e2bbbe40022003c9fc29f6a558e9a394cc86a62f4316fd4df1fe7e56b3b146acc
-  languageName: node
-  linkType: hard
-
-"@swig-wallet/lib@npm:1.0.0":
-  version: 1.0.0
-  resolution: "@swig-wallet/lib@npm:1.0.0"
-  dependencies:
-    "@noble/curves": "npm:^1.8.2"
-    "@solana-program/token": "npm:^0.5.1"
-    "@solana/kit": "npm:^2.1.0"
-    "@swig-wallet/coder": "npm:1.0.0"
-    bn.js: "npm:^5.2.2"
-  checksum: 10c0/53f8a66157a73cd9e3c034eb5818e369f35badbae10a4992f2813bcfb39756aedcea44b0405c936a40301f2a855c485c8ed02bc57c1a6398e679298e38157510
   languageName: node
   linkType: hard
 
@@ -3671,8 +3682,8 @@ __metadata:
     "@getpara/web-sdk": "npm:^1.11.0"
     "@heroicons/react": "npm:^2.2.0"
     "@solana/web3.js": "npm:^1.78.0"
-    "@swig-wallet/classic": "npm:1.1.0"
-    "@swig-wallet/coder": "npm:1.1.0"
+    "@swig-wallet/classic": "npm:0.2.0-beta.4"
+    "@swig-wallet/coder": "npm:0.2.0-beta.2"
     "@swig/eslint-config-custom": "workspace:*"
     "@swig/tsconfig": "workspace:*"
     "@swig/ui": "workspace:*"
@@ -3693,7 +3704,16 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@swig/legacy-dapp-example@workspace:apps/legacy-dapp-example"
   dependencies:
-    "@solana/web3.js": "npm:^1.78.0"
+    "@solana/wallet-adapter-backpack": "npm:^0.1.14"
+    "@solana/wallet-adapter-base": "npm:0.9.27"
+    "@solana/wallet-adapter-coinbase": "npm:^0.1.23"
+    "@solana/wallet-adapter-phantom": "npm:^0.9.28"
+    "@solana/wallet-adapter-react": "npm:0.15.38"
+    "@solana/wallet-adapter-react-ui": "npm:0.9.38"
+    "@solana/wallet-adapter-solflare": "npm:^0.6.32"
+    "@solana/wallet-adapter-torus": "npm:^0.11.32"
+    "@solana/wallet-adapter-wallets": "npm:^0.19.37"
+    "@solana/web3.js": "npm:1.98.2"
     "@swig/eslint-config-custom": "npm:*"
     "@swig/tsconfig": "npm:*"
     "@swig/ui": "npm:*"
@@ -3752,8 +3772,8 @@ __metadata:
     "@getpara/web-sdk": "npm:^1.11.0"
     "@heroicons/react": "npm:^2.2.0"
     "@solana/web3.js": "npm:^1.98.2"
-    "@swig-wallet/classic": "npm:0.2.0-beta.4"
-    "@swig-wallet/coder": "npm:0.2.0-beta.2"
+    "@swig-wallet/classic": "npm:1.1.0"
+    "@swig-wallet/coder": "npm:1.1.0"
     "@swig/eslint-config-custom": "workspace:*"
     "@swig/tsconfig": "workspace:*"
     "@swig/ui": "workspace:*"
@@ -4431,11 +4451,11 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:^18.7.16":
-  version: 18.19.121
-  resolution: "@types/node@npm:18.19.121"
+  version: 18.19.120
+  resolution: "@types/node@npm:18.19.120"
   dependencies:
     undici-types: "npm:~5.26.4"
-  checksum: 10c0/12ec33287214d617c7a5f8868f4ba11bd8c4dd895aa3e847bd15410eaf1ec58a0ce55dcb65a4eaffdccbb5e360476de88510248a681726bbc858fc90b8769e5d
+  checksum: 10c0/fc436b93a3c9367b69d11a1c5d70cc923df6ea60141dd508ce2a248160c3bf8a04c658548a59df8ab9148b68bd58954fb603917baab3e2bc9da567f655534e5a
   languageName: node
   linkType: hard
 
@@ -5076,13 +5096,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@xrplf/secret-numbers@npm:^1.0.0":
-  version: 1.0.0
-  resolution: "@xrplf/secret-numbers@npm:1.0.0"
+"@xrplf/secret-numbers@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "@xrplf/secret-numbers@npm:2.0.0"
   dependencies:
-    "@xrplf/isomorphic": "npm:^1.0.0"
+    "@xrplf/isomorphic": "npm:^1.0.1"
     ripple-keypairs: "npm:^2.0.0"
-  checksum: 10c0/73c14240b13d33a08ec17aa54c330aa716566c7a6c67e999b3f94a731292575dee49f96de9b4f13eee9a9dd9beade5fc2c6befd9dec393ca00f154f18d629b94
+  checksum: 10c0/eff03e2175689c9b870c3078c1fa01fa214e115d3961936e3ad89c59cf1a72d51f8cdac46ff9a0de76468baff8e387335610347fbf4e8697f17848cc6085966e
   languageName: node
   linkType: hard
 
@@ -6106,9 +6126,9 @@ __metadata:
   linkType: hard
 
 "caniuse-lite@npm:^1.0.30001702, caniuse-lite@npm:^1.0.30001726":
-  version: 1.0.30001731
-  resolution: "caniuse-lite@npm:1.0.30001731"
-  checksum: 10c0/d8cddf817d5bec8e7c2106affdbf1bfc3923463ca16697c992b2efeb043e6a5d9dcb70cda913bc6acf9112fd66f9e80279316c08e7800359116925066a63fdfa
+  version: 1.0.30001727
+  resolution: "caniuse-lite@npm:1.0.30001727"
+  checksum: 10c0/f0a441c05d8925d728c2d02ce23b001935f52183a3bf669556f302568fe258d1657940c7ac0b998f92bc41383e185b390279a7d779e6d96a2b47881f56400221
   languageName: node
   linkType: hard
 
@@ -6872,9 +6892,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.5.173":
-  version: 1.5.192
-  resolution: "electron-to-chromium@npm:1.5.192"
-  checksum: 10c0/7993350fdd3c12d9667a42370ce3202bf3012fd6fed13ac1393eeb3fdda51347e805f340ae06939192f37b00a3d0856034b69b1bf6696ba96848fd42267a6f8b
+  version: 1.5.191
+  resolution: "electron-to-chromium@npm:1.5.191"
+  checksum: 10c0/26b22ec2ae2a152da09f062d8582e54384a15ddc2a27149cdc2747a0c3f46154370a37b9e687de2d6d71ea1ebc1319f8394283ffb1581f1d4495cdefffd7a2a6
   languageName: node
   linkType: hard
 
@@ -11183,14 +11203,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ripple-binary-codec@npm:^2.4.0":
-  version: 2.4.1
-  resolution: "ripple-binary-codec@npm:2.4.1"
+"ripple-binary-codec@npm:^2.5.0":
+  version: 2.5.0
+  resolution: "ripple-binary-codec@npm:2.5.0"
   dependencies:
     "@xrplf/isomorphic": "npm:^1.0.1"
     bignumber.js: "npm:^9.0.0"
     ripple-address-codec: "npm:^5.0.0"
-  checksum: 10c0/966dfcab0451073861b2fd3cc7e66f046a6c32672cfae2ef77f6a47defcfc0917dd5223672f4ed7b353ae2cc01334e899c979417120c6da5d55a353a77ce4ad5
+  checksum: 10c0/9d5087444c5cbf63f7cfc235c375c251fec3f3feb2b73d35b519f19fbd353242630b6e7d09cf0405b1310312ddffe33fb72d5f734c59c8d77f9d1b2952967756
   languageName: node
   linkType: hard
 
@@ -11249,8 +11269,8 @@ __metadata:
   linkType: hard
 
 "rpc-websockets@npm:^9.0.2":
-  version: 9.1.3
-  resolution: "rpc-websockets@npm:9.1.3"
+  version: 9.1.2
+  resolution: "rpc-websockets@npm:9.1.2"
   dependencies:
     "@swc/helpers": "npm:^0.5.11"
     "@types/uuid": "npm:^8.3.4"
@@ -11266,7 +11286,7 @@ __metadata:
       optional: true
     utf-8-validate:
       optional: true
-  checksum: 10c0/7106b235ccf29f71f39c64d43b191bf80e9e9e48b3a1914835610abf6e8505b1cff531baa08a0eea9b9352dd31aa10c8715b261566b3f00dd5d17b87ea9c671b
+  checksum: 10c0/ee5a734ca9cebc70cb1ebda204e04fe65cd002995dc01eb2d247eb4738ddd6b12b91bfb8a4b1aa569b0a0d00b2475bd18a7b14968f6601b92806de9094f66ad5
   languageName: node
   linkType: hard
 
@@ -12039,7 +12059,7 @@ __metadata:
     "@noble/curves": "npm:^1.9.1"
     "@solana/spl-token": "npm:^0.4.13"
     "@solana/spl-token-registry": "npm:^0.2.4574"
-    "@swig-wallet/classic": "npm:1.0.0"
+    "@swig-wallet/classic": "npm:1.1.0"
     "@types/chrome": "npm:^0.0.309"
     prettier: "npm:^2.8.8"
     react-icons: "npm:^5.5.0"
@@ -13331,19 +13351,19 @@ __metadata:
   linkType: hard
 
 "xrpl@npm:^4.3.0":
-  version: 4.3.0
-  resolution: "xrpl@npm:4.3.0"
+  version: 4.4.0
+  resolution: "xrpl@npm:4.4.0"
   dependencies:
     "@scure/bip32": "npm:^1.3.1"
     "@scure/bip39": "npm:^1.2.1"
     "@xrplf/isomorphic": "npm:^1.0.1"
-    "@xrplf/secret-numbers": "npm:^1.0.0"
+    "@xrplf/secret-numbers": "npm:^2.0.0"
     bignumber.js: "npm:^9.0.0"
     eventemitter3: "npm:^5.0.1"
     ripple-address-codec: "npm:^5.0.0"
-    ripple-binary-codec: "npm:^2.4.0"
+    ripple-binary-codec: "npm:^2.5.0"
     ripple-keypairs: "npm:^2.0.0"
-  checksum: 10c0/b031f6a614f0d31b2218da484ae2fcbb73821283690373a52c76ac5854cf37271b46cf76d0a6356267769d009199e50ae301137a295b697ef075e5445480a20b
+  checksum: 10c0/d6bd72a996a59723112e985811aa0618fa9364b110904776466237b7597958b659bcd09fe360ce12595271ab3421174a69c7a40857ab1975c96b4b4c7493a189
   languageName: node
   linkType: hard
 
